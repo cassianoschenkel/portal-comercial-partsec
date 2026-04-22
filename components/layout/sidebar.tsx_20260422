@@ -1,0 +1,32 @@
+import Link from "next/link";
+
+const navigation = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/dashboard/clientes", label: "Clientes" },
+  { href: "/dashboard/propostas", label: "Propostas" }
+];
+
+export function Sidebar() {
+  return (
+    <aside className="hidden min-h-screen w-64 border-r border-slate-200 bg-slate-950 px-4 py-6 text-white lg:block">
+      <div className="mb-10 px-2">
+        <p className="text-sm font-semibold uppercase tracking-wide text-brand-100">
+          Partsec
+        </p>
+        <p className="mt-2 text-lg font-semibold">Portal Comercial</p>
+      </div>
+
+      <nav className="space-y-1">
+        {navigation.map((item) => (
+          <Link
+            className="block rounded-md px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white"
+            href={item.href}
+            key={item.href}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+    </aside>
+  );
+}

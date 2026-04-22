@@ -1,0 +1,325 @@
+import {
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet,
+} from "@react-pdf/renderer";
+
+import {
+  formatProposalNumber,
+  formatProposalPlan,
+  formatProposalStatus,
+} from "@/lib/utils/proposals";
+
+const styles = StyleSheet.create({
+  page: {
+    padding: 32,
+    fontSize: 10,
+    color: "#0f172a",
+    fontFamily: "Helvetica",
+  },
+  header: {
+    marginBottom: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#cbd5e1",
+  },
+  brand: {
+    fontSize: 10,
+    color: "#2563eb",
+    marginBottom: 6,
+  },
+  title: {
+    fontSize: 20,
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontSize: 10,
+    color: "#475569",
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 16,
+  },
+  headerBlock: {
+    width: "48%",
+  },
+  section: {
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e2e8f0",
+  },
+  sectionTitle: {
+    fontSize: 11,
+    marginBottom: 8,
+    color: "#475569",
+  },
+  twoCols: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 16,
+  },
+  col: {
+    width: "48%",
+  },
+  label: {
+    fontSize: 9,
+    color: "#64748b",
+    marginBottom: 2,
+  },
+  value: {
+    fontSize: 10,
+    marginBottom: 6,
+  },
+  table: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+  },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: "#f8fafc",
+    borderBottomWidth: 1,
+    borderBottomColor: "#cbd5e1",
+  },
+  tableRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e2e8f0",
+  },
+  cellLabel: {
+    width: "70%",
+    padding: 8,
+    fontSize: 10,
+  },
+  cellValue: {
+    width: "30%",
+    padding: 8,
+    fontSize: 10,
+    textAlign: "right",
+  },
+  totalRow: {
+    flexDirection: "row",
+    backgroundColor: "#f8fafc",
+  },
+  totalLabel: {
+    width: "70%",
+    padding: 10,
+    fontSize: 11,
+  },
+  totalValue: {
+    width: "30%",
+    padding: 10,
+    fontSize: 11,
+    textAlign: "right",
+  },
+  noteBox: {
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    backgroundColor: "#f8fafc",
+    padding: 10,
+    minHeight: 70,
+  },
+  footer: {
+    marginTop: 18,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0",
+    fontSize: 8,
+    color: "#64748b",
+  },
+});
+
+function formatCurrency(value: unknown) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(Number(value));
+}
+
+function formatDate(value: Date | string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+  }).format(new Date(value));
+}
+
+type ProposalPDFProps = {
+  proposal: {
+    proposalNumber: number;
+    title: string;
+    status: string;
+    plan: string;
+    activeCount: number;
+    unitPrice: unknown;
+    subtotal: unknown;
+    discountPercent: unknown;
+    discountValue: unknown;
+    total: unknown;
+    partnerCommissionPercent: unknown;
+    partnerCommissionValue: unknown;
+    notes: string | null;
+    createdAt: Date | string;
+    customer: {
+      companyName: string;
+      tradeName: string | null;
+      document: string;
+      contactName: string;
+      contactEmail: string;
+      contactPhone: string | null;
+    };
+    partner: {
+      name: string;
+      email: string;
+    };
+  };
+};
+
+export function ProposalPDF({ proposal }: ProposalPDFProps) {
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <Text style={styles.brand}>Partsec</Text>
+          <Text style={styles.title}>Proposta Comercial</Text>
+          <Text style={styles.subtitle}>
+            {formatProposalNumber(proposal.proposalNumber, proposal.createdAt)}
+          </Text>
+        </View>
+
+        <View style={[styles.section, styles.twoCols]}>
+          <View style={styles.col}>
+            <Text style={styles.sectionTitle}>Cliente</Text>
+
+            <Text style={styles.label}>Razão social</Text>
+            <Text style={styles.value}>{proposal.customer.companyName}</Text>
+
+            {proposal.customer.tradeName ? (
+              <>
+                <Text style={styles.label}>Nome fantasia</Text>
+                <Text style={styles.value}>{proposal.customer.tradeName}</Text>
+              </>
+            ) : null}
+
+            <Text style={styles.label}>Documento</Text>
+            <Text style={styles.value}>{proposal.customer.document}</Text>
+
+            <Text style={styles.label}>Contato</Text>
+            <Text style={styles.value}>{proposal.customer.contactName}</Text>
+
+            <Text style={styles.label}>E-mail</Text>
+            <Text style={styles.value}>{proposal.customer.contactEmail}</Text>
+
+            {proposal.customer.contactPhone ? (
+              <>
+                <Text style={styles.label}>Telefone</Text>
+                <Text style={styles.value}>{proposal.customer.contactPhone}</Text>
+              </>
+            ) : null}
+          </View>
+
+          <View style={styles.col}>
+            <Text style={styles.sectionTitle}>Proposta</Text>
+
+            <Text style={styles.label}>Título</Text>
+            <Text style={styles.value}>{proposal.title}</Text>
+
+            <Text style={styles.label}>Status</Text>
+            <Text style={styles.value}>{formatProposalStatus(proposal.status)}</Text>
+
+            <Text style={styles.label}>Data</Text>
+            <Text style={styles.value}>{formatDate(proposal.createdAt)}</Text>
+
+            <Text style={styles.label}>Parceiro</Text>
+            <Text style={styles.value}>{proposal.partner.name}</Text>
+
+            <Text style={styles.label}>E-mail do parceiro</Text>
+            <Text style={styles.value}>{proposal.partner.email}</Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Escopo comercial</Text>
+
+          <View style={styles.twoCols}>
+            <View style={styles.col}>
+              <Text style={styles.label}>Plano</Text>
+              <Text style={styles.value}>{formatProposalPlan(proposal.plan)}</Text>
+            </View>
+
+            <View style={styles.col}>
+              <Text style={styles.label}>Quantidade de ativos</Text>
+              <Text style={styles.value}>{proposal.activeCount}</Text>
+            </View>
+          </View>
+
+          <View style={styles.twoCols}>
+            <View style={styles.col}>
+              <Text style={styles.label}>Preço unitário</Text>
+              <Text style={styles.value}>{formatCurrency(proposal.unitPrice)}</Text>
+            </View>
+
+            <View style={styles.col}>
+              <Text style={styles.label}>Comissão do parceiro</Text>
+              <Text style={styles.value}>
+                {Number(proposal.partnerCommissionPercent)}% ·{" "}
+                {formatCurrency(proposal.partnerCommissionValue)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Resumo financeiro</Text>
+
+          <View style={styles.table}>
+            <View style={styles.tableHeader}>
+              <Text style={styles.cellLabel}>Descrição</Text>
+              <Text style={styles.cellValue}>Valor</Text>
+            </View>
+
+            <View style={styles.tableRow}>
+              <Text style={styles.cellLabel}>Subtotal</Text>
+              <Text style={styles.cellValue}>
+                {formatCurrency(proposal.subtotal)}
+              </Text>
+            </View>
+
+            <View style={styles.tableRow}>
+              <Text style={styles.cellLabel}>
+                Desconto ({Number(proposal.discountPercent)}%)
+              </Text>
+              <Text style={styles.cellValue}>
+                - {formatCurrency(proposal.discountValue)}
+              </Text>
+            </View>
+
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Total da proposta</Text>
+              <Text style={styles.totalValue}>
+                {formatCurrency(proposal.total)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Observações</Text>
+          <View style={styles.noteBox}>
+            <Text>
+              {proposal.notes?.trim()
+                ? proposal.notes
+                : "Nenhuma observação registrada."}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.footer}>
+          <Text>Documento gerado pelo Portal Comercial Partsec.</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+}

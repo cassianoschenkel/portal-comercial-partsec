@@ -1,0 +1,33 @@
+import { NextResponse } from "next/server";
+import { renderToStream } from "@react-pdf/renderer";
+
+import { ProposalPDF } from "@/components/proposals/proposal-pdf";
+import { prisma } from "@/lib/prisma";
+
+export async function GET(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  const proposal = await prisma.proposal.findUnique({
+    where: { id: params.id },
+    include: {
+      customer: true,
+      partner: true,
+    },
+  });
+
+  if (!proposal) {
+    return new NextResponse("Not found", { status: 404 });
+  }
+
+  const stream = await renderToStream(
+    <ProposalPDF proposal={proposal} />
+  );
+
+  return new NextResponse(stream as any, {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="proposta-${proposal.proposalNumber}.pdf"`,
+    },
+  });
+}

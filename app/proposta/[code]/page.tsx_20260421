@@ -1,0 +1,33 @@
+import { prisma } from "@/lib/prisma";
+import { notFound } from "next/navigation";
+import { ProposalPreview } from "@/components/proposals/proposal-preview";
+
+function parseCode(code: string) {
+  // P-2026-000001 → 1
+  const parts = code.split("-");
+  return Number(parts[2]);
+}
+
+export default async function PublicProposalPage({
+  params,
+}: {
+  params: { code: string };
+}) {
+  const number = parseCode(params.code);
+
+  const proposal = await prisma.proposal.findUnique({
+    where: { proposalNumber: number },
+    include: {
+      customer: true,
+      partner: true,
+    },
+  });
+
+  if (!proposal) return notFound();
+
+  return (
+    <div className="min-h-screen bg-white p-6">
+      <ProposalPreview proposal={proposal} isPublic />
+    </div>
+  );
+}

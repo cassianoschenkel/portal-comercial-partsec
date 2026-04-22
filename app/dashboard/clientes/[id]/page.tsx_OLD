@@ -1,0 +1,92 @@
+import { notFound } from "next/navigation";
+
+import { DeleteCustomerButton } from "@/components/customers/delete-customer-button";
+import { LinkButton } from "@/components/ui/link-button";
+import { PageHeader } from "@/components/ui/page-header";
+import { prisma } from "@/lib/prisma";
+
+export default async function CustomerDetailsPage({
+  params
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const customer = await prisma.customer.findUnique({
+    where: { id },
+    include: {
+      proposals: {
+        orderBy: { createdAt: "desc" },
+        take: 10
+      }
+    }
+  });
+
+  if (!customer) {
+    notFound();
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        actions={
+          <>
+            <LinkButton href="/clientes" variant="secondary">
+              Voltar
+            </LinkButton>
+            <LinkButton href={`/clientes/${customer.id}/editar`}>
+              Editar
+            </LinkButton>
+            <DeleteCustomerButton id={customer.id} />
+          </>
+        }
+        description={customer.tradeName ?? "Cliente cadastrado"}
+        title={customer.companyName}
+      />
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <InfoCard label="Documento" value={customer.document} />
+        <InfoCard label="Contato" value={customer.contactName} />
+        <InfoCard label="E-mail" value={customer.contactEmail} />
+        <InfoCard label="Telefone" value={customer.contactPhone ?? "-"} />
+      </section>
+
+      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft">
+        <h2 className="font-semibold text-slate-950">Observacoes</h2>
+        <p className="mt-3 whitespace-pre-line text-sm text-slate-700">
+          {customer.notes || "Nenhuma observacao cadastrada."}
+        </p>
+      </section>
+
+      <section className="rounded-lg border border-slate-200 bg-white shadow-soft">
+        <div className="border-b border-slate-200 px-5 py-4">
+          <h2 className="font-semibold text-slate-950">Historico de propostas</h2>
+        </div>
+        {customer.proposals.length === 0 ? (
+          <p className="px-5 py-6 text-sm text-slate-600">
+            Nenhuma proposta vinculada a este cliente ainda.
+          </p>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {customer.proposals.map((proposal) => (
+              <div className="px-5 py-4" key={proposal.id}>
+                <p className="font-medium text-slate-950">{proposal.title}</p>
+                <p className="text-sm text-slate-600">
+                  {proposal.plan} · {proposal.status}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function InfoCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft">
+      <p className="text-sm text-slate-600">{label}</p>
+      <p className="mt-2 font-semibold text-slate-950">{value}</p>
+    </div>
+  );
+}

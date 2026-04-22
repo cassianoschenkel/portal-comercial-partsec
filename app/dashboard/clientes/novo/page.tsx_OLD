@@ -1,0 +1,24 @@
+import { CustomerForm } from "@/components/customers/customer-form";
+import { LinkButton } from "@/components/ui/link-button";
+import { PageHeader } from "@/components/ui/page-header";
+import { createCustomerAction } from "@/lib/customer-actions";
+
+export default function NewCustomerPage() {
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        actions={
+          <LinkButton href="/clientes" variant="secondary">
+            Voltar
+          </LinkButton>
+        }
+        description="Cadastre os dados principais para futuras propostas."
+        title="Novo cliente"
+      />
+
+      <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-soft">
+        <CustomerForm action={createCustomerAction} submitLabel="Criar cliente" />
+      </section>
+    </div>
+  );
+}
