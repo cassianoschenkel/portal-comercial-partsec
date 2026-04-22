@@ -9,8 +9,11 @@ type CustomerRow = {
   document: string;
   contactName: string;
   contactEmail: string;
-  contactPhone: string;
-  createdAt: Date;
+  contactPhone: string | null;
+  notes?: string | null;
+  partnerId?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 type Props = {

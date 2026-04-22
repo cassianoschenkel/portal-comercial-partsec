@@ -35,7 +35,10 @@ export default async function EditPartnerPage({
 
       <PartnerForm
         action={updatePartner.bind(null, partner.id)}
-        initialData={partner}
+        initialData={{
+          ...partner,
+          commissionPercent: Number(partner.commissionPercent),
+        }}
         submitLabel="Salvar alterações"
         isEdit
       />

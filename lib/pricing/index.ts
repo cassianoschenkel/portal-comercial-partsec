@@ -2,33 +2,39 @@ import { ProposalPlan } from "@prisma/client";
 
 type PricingTier = {
   min: number;
-  max: number | null;
-  unitPrice: number;
+  max: number;
+  monthlyPrice: number;
+  setupFee: number;
+  tierLabel: "S" | "M" | "L" | "XL";
 };
 
 const PRICING_TABLE: Record<ProposalPlan, PricingTier[]> = {
   ESSENTIAL: [
-    { min: 1, max: 50, unitPrice: 12 },
-    { min: 51, max: 100, unitPrice: 10 },
-    { min: 101, max: 250, unitPrice: 8 },
-    { min: 251, max: null, unitPrice: 6 },
+    { min: 0, max: 10, monthlyPrice: 297, setupFee: 400, tierLabel: "S" },
+    { min: 11, max: 25, monthlyPrice: 397, setupFee: 650, tierLabel: "M" },
+    { min: 26, max: 50, monthlyPrice: 497, setupFee: 1000, tierLabel: "L" },
+    { min: 51, max: 100, monthlyPrice: 597, setupFee: 1500, tierLabel: "XL" },
   ],
   PROFESSIONAL: [
-    { min: 1, max: 50, unitPrice: 18 },
-    { min: 51, max: 100, unitPrice: 16 },
-    { min: 101, max: 250, unitPrice: 14 },
-    { min: 251, max: null, unitPrice: 12 },
+    { min: 0, max: 10, monthlyPrice: 597, setupFee: 400, tierLabel: "S" },
+    { min: 11, max: 25, monthlyPrice: 697, setupFee: 650, tierLabel: "M" },
+    { min: 26, max: 50, monthlyPrice: 897, setupFee: 1000, tierLabel: "L" },
+    { min: 51, max: 100, monthlyPrice: 1097, setupFee: 1500, tierLabel: "XL" },
   ],
   ENTERPRISE: [
-    { min: 1, max: 50, unitPrice: 28 },
-    { min: 51, max: 100, unitPrice: 25 },
-    { min: 101, max: 250, unitPrice: 22 },
-    { min: 251, max: null, unitPrice: 19 },
+    { min: 0, max: 10, monthlyPrice: 1097, setupFee: 400, tierLabel: "S" },
+    { min: 11, max: 25, monthlyPrice: 1297, setupFee: 650, tierLabel: "M" },
+    { min: 26, max: 50, monthlyPrice: 1597, setupFee: 1000, tierLabel: "L" },
+    { min: 51, max: 100, monthlyPrice: 1997, setupFee: 1500, tierLabel: "XL" },
   ],
 };
 
 export const MAX_DISCOUNT_PERCENT = 20;
 export const PARTNER_COMMISSION_PERCENT = 30;
+
+function roundCurrency(value: number) {
+  return Number(value.toFixed(2));
+}
 
 export function getPricingByPlanAndActiveCount(
   plan: ProposalPlan,
@@ -37,20 +43,14 @@ export function getPricingByPlanAndActiveCount(
   const tiers = PRICING_TABLE[plan];
 
   const tier = tiers.find(({ min, max }) => {
-    const withinMin = activeCount >= min;
-    const withinMax = max === null || activeCount <= max;
-    return withinMin && withinMax;
+    return activeCount >= min && activeCount <= max;
   });
 
   if (!tier) {
-    throw new Error("Nenhuma faixa de preço encontrada.");
+    throw new Error("Nenhuma faixa de preço encontrada para esta quantidade de ativos.");
   }
 
   return tier;
-}
-
-function roundCurrency(value: number) {
-  return Number(value.toFixed(2));
 }
 
 export function calculatePartnerCommission(
@@ -80,9 +80,9 @@ export function calculateProposalTotals(params: {
     );
   }
 
-  const { unitPrice } = getPricingByPlanAndActiveCount(plan, activeCount);
+  const tier = getPricingByPlanAndActiveCount(plan, activeCount);
 
-  const subtotal = roundCurrency(unitPrice * activeCount);
+  const subtotal = roundCurrency(tier.monthlyPrice);
   const discountValue = roundCurrency((subtotal * discountPercent) / 100);
   const total = roundCurrency(subtotal - discountValue);
   const partnerCommissionValue = calculatePartnerCommission(
@@ -90,9 +90,13 @@ export function calculateProposalTotals(params: {
     commissionPercent
   );
 
+  const unitPrice = roundCurrency(subtotal / activeCount);
+
   return {
-    unitPrice: roundCurrency(unitPrice),
+    tierLabel: tier.tierLabel,
+    unitPrice,
     subtotal,
+    setupFee: roundCurrency(tier.setupFee),
     discountPercent: roundCurrency(discountPercent),
     discountValue,
     total,

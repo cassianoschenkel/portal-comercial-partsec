@@ -13,7 +13,7 @@ import { proposalSchema } from "@/lib/validations/proposal";
 export async function createProposal(formData: FormData) {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.id) {
+  if (!session?.user?.id || !session.user.role) {
     throw new Error("Usuário não autenticado.");
   }
 
@@ -23,7 +23,6 @@ export async function createProposal(formData: FormData) {
     plan: formData.get("plan"),
     activeCount: formData.get("activeCount"),
     discountPercent: formData.get("discountPercent"),
-    setupFee: formData.get("setupFee"),
     notes: formData.get("notes"),
     scopeDescription: formData.get("scopeDescription"),
   });
@@ -32,33 +31,33 @@ export async function createProposal(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message || "Dados inválidos.");
   }
 
-	const partner = await prisma.user.findUnique({
-		where: { id: session.user.id },
-	});
+  const partner = await prisma.user.findUnique({
+    where: { id: session.user.id },
+  });
 
-	if (!partner) {
-	throw new Error("Parceiro não encontrado.");
-	}
-	
-	const customer = await prisma.customer.findFirst({
-		where: {
-		id: parsed.data.customerId,
-		...(session.user.role === UserRole.ADMIN
-		? {}
-		: { partnerId: session.user.id }),
-	},
-	});
-	
-	if (!customer) {
-	throw new Error("Cliente inválido para este usuário.");
-	}
+  if (!partner) {
+    throw new Error("Parceiro não encontrado.");
+  }
 
-	const totals = calculateProposalTotals({
-	plan: parsed.data.plan,
-	activeCount: parsed.data.activeCount,
-	discountPercent: parsed.data.discountPercent,
-	commissionPercent: Number(partner.commissionPercent),
-	});
+  const customer = await prisma.customer.findFirst({
+    where: {
+      id: parsed.data.customerId,
+      ...(session.user.role === UserRole.ADMIN
+        ? {}
+        : { partnerId: session.user.id }),
+    },
+  });
+
+  if (!customer) {
+    throw new Error("Cliente inválido para este usuário.");
+  }
+
+  const totals = calculateProposalTotals({
+    plan: parsed.data.plan,
+    activeCount: parsed.data.activeCount,
+    discountPercent: parsed.data.discountPercent,
+    commissionPercent: Number(partner.commissionPercent),
+  });
 
   const proposal = await prisma.proposal.create({
     data: {
@@ -73,7 +72,7 @@ export async function createProposal(formData: FormData) {
       discountPercent: totals.discountPercent.toString(),
       discountValue: totals.discountValue.toString(),
       total: totals.total.toString(),
-      setupFee: parsed.data.setupFee.toString(),
+      setupFee: totals.setupFee.toString(),
       partnerCommissionPercent: totals.partnerCommissionPercent.toString(),
       partnerCommissionValue: totals.partnerCommissionValue.toString(),
       notes: parsed.data.notes || null,

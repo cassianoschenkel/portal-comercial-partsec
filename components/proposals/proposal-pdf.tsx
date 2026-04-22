@@ -2,6 +2,7 @@ import path from "node:path";
 
 import {
   Document,
+  Font,
   Image,
   Page,
   Text,
@@ -15,11 +16,13 @@ import {
   formatProposalStatus,
 } from "@/lib/utils/proposals";
 
+Font.registerHyphenationCallback((word) => [word]);
+
 const styles = StyleSheet.create({
   page: {
     paddingTop: 0,
     paddingHorizontal: 32,
-    paddingBottom: 56,
+    paddingBottom: 30,
     fontSize: 10,
     color: "#0f172a",
     fontFamily: "Helvetica",
@@ -27,17 +30,17 @@ const styles = StyleSheet.create({
   },
 
   topBar: {
-    height: 10,
+    height: 16,
     backgroundColor: "#0f172a",
-    marginBottom: 14,
+    marginBottom: 20,
     marginHorizontal: -32,
   },
 
   header: {
-    marginBottom: 12,
-    paddingBottom: 10,
+    marginBottom: 16,
+    paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#cbd5e1",
+    borderBottomColor: "#e2e8f0",
   },
 
   headerRow: {
@@ -47,50 +50,74 @@ const styles = StyleSheet.create({
   },
 
   logoBlock: {
-    width: "52%",
+    width: "58%",
   },
 
   logo: {
-    width: 120,
-    height: 36,
+    width: 260,
+    height: 78,
     objectFit: "contain",
-    marginBottom: 6,
+    marginBottom: 10,
   },
 
   headerMeta: {
-    width: "48%",
-    alignItems: "flex-end",
+    width: "42%",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#f8fafc",
+    padding: 12,
+    alignSelf: "flex-start",
   },
 
   title: {
-    fontSize: 17,
-    marginBottom: 3,
+    fontSize: 24,
+    marginBottom: 4,
+    color: "#0f172a",
   },
 
   proposalCode: {
-    fontSize: 9,
-    color: "#2563eb",
-    marginBottom: 6,
+    fontSize: 18,
+    color: "#1d4ed8",
+  },
+
+  metaTitle: {
+    fontSize: 16,
+    marginBottom: 8,
+    color: "#0f172a",
   },
 
   metaLine: {
-    fontSize: 8.5,
+    fontSize: 9,
     color: "#475569",
-    marginBottom: 2,
-    textAlign: "right",
+    marginBottom: 4,
   },
 
   section: {
-    marginBottom: 10,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
+    marginBottom: 14,
+  },
+
+  sectionCard: {
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 10,
+    padding: 14,
+    backgroundColor: "#ffffff",
+  },
+
+  sectionSoftCard: {
+    borderWidth: 1,
+    borderColor: "#dbeafe",
+    borderRadius: 10,
+    padding: 14,
+    backgroundColor: "#f8fafc",
   },
 
   sectionTitle: {
-    fontSize: 9.5,
-    marginBottom: 6,
-    color: "#334155",
+    fontSize: 10,
+    marginBottom: 10,
+    color: "#1e40af",
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
 
   twoCols: {
@@ -103,199 +130,272 @@ const styles = StyleSheet.create({
     width: "48%",
   },
 
+  fieldGroup: {
+    marginBottom: 8,
+  },
+
   label: {
-    fontSize: 7.5,
+    fontSize: 8,
     color: "#64748b",
-    marginBottom: 1,
+    marginBottom: 2,
+    textTransform: "uppercase",
   },
 
   value: {
-    fontSize: 8.5,
-    marginBottom: 4,
+    fontSize: 10,
+    color: "#0f172a",
   },
 
-  highlightGrid: {
+  valueStrong: {
+    fontSize: 12,
+    color: "#0f172a",
+  },
+
+  bodyText: {
+    fontSize: 10,
+    lineHeight: 1.45,
+    color: "#334155",
+  },
+
+  configGrid: {
     flexDirection: "row",
-    gap: 8,
-    marginTop: 2,
+    gap: 10,
   },
 
-  highlightCard: {
+  configCard: {
     flexGrow: 1,
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: "#e2e8f0",
+    borderRadius: 10,
+    padding: 14,
     backgroundColor: "#f8fafc",
-    padding: 6,
+    alignItems: "center",
   },
 
-  highlightLabel: {
-    fontSize: 7.5,
+  configLabel: {
+    fontSize: 8,
     color: "#64748b",
-    marginBottom: 2,
+    textTransform: "uppercase",
+    marginBottom: 8,
   },
 
-  highlightValue: {
-    fontSize: 9,
+  configValue: {
+    fontSize: 22,
+    color: "#1d4ed8",
   },
 
-  table: {
-    marginTop: 4,
+  financialBox: {
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: "#e2e8f0",
+    borderRadius: 10,
   },
 
-  tableHeader: {
+  financialHeader: {
     flexDirection: "row",
-    backgroundColor: "#e2e8f0",
+    backgroundColor: "#0f172a",
   },
 
-  tableRow: {
+  financialHeaderLabel: {
+    width: "70%",
+    padding: 10,
+    fontSize: 10,
+    color: "#ffffff",
+  },
+
+  financialHeaderValue: {
+    width: "30%",
+    padding: 10,
+    fontSize: 10,
+    color: "#ffffff",
+    textAlign: "right",
+  },
+
+  financialRow: {
     flexDirection: "row",
     borderTopWidth: 1,
     borderTopColor: "#e2e8f0",
   },
 
-  cellLabel: {
+  financialLabel: {
     width: "70%",
-    padding: 5,
-    fontSize: 8.5,
+    padding: 10,
+    fontSize: 10,
+    color: "#334155",
   },
 
-  cellValue: {
+  financialValue: {
     width: "30%",
-    padding: 5,
-    fontSize: 8.5,
+    padding: 10,
+    fontSize: 10,
+    color: "#0f172a",
     textAlign: "right",
   },
 
-  totalRow: {
+  financialTotalRow: {
     flexDirection: "row",
-    backgroundColor: "#f1f5f9",
     borderTopWidth: 1,
-    borderTopColor: "#cbd5e1",
+    borderTopColor: "#e2e8f0",
+    backgroundColor: "#f8fafc",
   },
 
-  totalLabel: {
+  financialTotalLabel: {
     width: "70%",
-    padding: 7,
-    fontSize: 9,
+    padding: 12,
+    fontSize: 11,
+    color: "#1e40af",
   },
 
-  totalValue: {
+  financialTotalValue: {
     width: "30%",
-    padding: 7,
-    fontSize: 9,
+    padding: 12,
+    fontSize: 11,
+    color: "#1e40af",
     textAlign: "right",
   },
 
-  noteBox: {
-    borderWidth: 1,
-    borderColor: "#cbd5e1",
-    backgroundColor: "#f8fafc",
-    padding: 6,
+  notesText: {
+    fontSize: 10,
+    lineHeight: 1.45,
+    color: "#334155",
   },
 
-  notesSection: {
-    marginTop: 2,
+  termsGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  termsCol: {
+    width: "48%",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 10,
+    backgroundColor: "#f8fafc",
+    padding: 12,
+  },
+
+  termsTitle: {
+    fontSize: 10,
     marginBottom: 8,
-    paddingBottom: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
+    color: "#1e40af",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+
+  termsText: {
+    fontSize: 9,
+    lineHeight: 1.4,
+    color: "#475569",
   },
 
   footer: {
     position: "absolute",
     left: 32,
     right: 32,
-    bottom: 14,
-    paddingTop: 6,
+    bottom: 12,
+    paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: "#cbd5e1",
+    borderTopColor: "#e2e8f0",
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
 
   footerLine: {
-    fontSize: 7.5,
+    fontSize: 8,
     color: "#64748b",
-    marginBottom: 1,
   },
 
-  descriptionBox: {
-    marginBottom: 10,
-    padding: 8,
+  aboutGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 16,
+  },
+
+  aboutLeft: {
+    width: "44%",
+  },
+
+  aboutRight: {
+    width: "56%",
+  },
+
+  emphasisBox: {
+    marginTop: 14,
+    borderRadius: 10,
+    backgroundColor: "#0f172a",
+    padding: 14,
+  },
+
+  emphasisText: {
+    fontSize: 10,
+    lineHeight: 1.45,
+    color: "#ffffff",
+  },
+
+  bulletList: {
+    marginTop: 10,
+  },
+
+  bulletItem: {
+    fontSize: 10,
+    lineHeight: 1.45,
+    color: "#334155",
+    marginBottom: 5,
+  },
+
+  acceptanceCard: {
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 10,
+    padding: 16,
+    backgroundColor: "#ffffff",
+  },
+
+  signatureField: {
+    marginTop: 16,
+    marginBottom: 12,
+  },
+
+  signatureLabel: {
+    fontSize: 9,
+    color: "#475569",
+    marginBottom: 8,
+  },
+
+  signatureLine: {
+    height: 28,
+    borderBottomWidth: 1,
+    borderBottomColor: "#94a3b8",
+  },
+
+  signatureLineShort: {
+    height: 28,
+    width: "60%",
+    borderBottomWidth: 1,
+    borderBottomColor: "#94a3b8",
+  },
+
+  signatureBox: {
+    marginTop: 18,
     borderWidth: 1,
     borderColor: "#cbd5e1",
-    backgroundColor: "#f8fafc",
+    borderRadius: 10,
+    padding: 16,
   },
 
-  descriptionTitle: {
-    fontSize: 9.5,
-    marginBottom: 5,
-    color: "#334155",
+  signatureArea: {
+    height: 100,
+    borderBottomWidth: 1,
+    borderBottomColor: "#94a3b8",
   },
 
-  descriptionText: {
-    fontSize: 8.5,
-    lineHeight: 1.35,
-    color: "#334155",
+  signatureCaption: {
+    marginTop: 10,
+    fontSize: 9,
+    color: "#64748b",
+    textAlign: "center",
   },
-
-  scopeBox: {
-    marginBottom: 10,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: "#cbd5e1",
-    backgroundColor: "#f8fafc",
-  },
-
-  scopeTitle: {
-    fontSize: 9.5,
-    marginBottom: 5,
-    color: "#334155",
-  },
-
-  scopeText: {
-    fontSize: 8.5,
-    lineHeight: 1.35,
-    color: "#334155",
-  },
-
-  notesText: {
-    fontSize: 8.5,
-    lineHeight: 1.3,
-  },
-  termsSection: {
-  marginTop: 6,
-  marginBottom: 10,
-  paddingTop: 8,
-  borderTopWidth: 1,
-  borderTopColor: "#e2e8f0",
-},
-
-termsGrid: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  gap: 12,
-},
-
-termsCol: {
-  width: "48%",
-  borderWidth: 1,
-  borderColor: "#cbd5e1",
-  backgroundColor: "#f8fafc",
-  padding: 8,
-},
-
-termsTitle: {
-  fontSize: 9,
-  marginBottom: 5,
-  color: "#334155",
-},
-
-termsText: {
-  fontSize: 8,
-  lineHeight: 1.35,
-  color: "#475569",
-},
 });
 
 function formatCurrency(value: unknown) {
@@ -306,7 +406,9 @@ function formatCurrency(value: unknown) {
 }
 
 function formatDate(value: Date | string) {
-  return new Intl.DateTimeFormat("pt-BR").format(new Date(value));
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+  }).format(new Date(value));
 }
 
 function resolveLogoPath() {
@@ -314,6 +416,12 @@ function resolveLogoPath() {
 }
 
 export function ProposalPDF({ proposal }: any) {
+  const notesText =
+    proposal.notes?.trim() ||
+    `Para a habilitação do serviço (enabling), será necessário o alinhamento com a equipe técnica do cliente para o fornecimento dos acessos de coleta de informações (API, syslog, SNMP, etc).
+
+O prazo para a finalização da implementação é de até 30 dias corridos a partir do aceite formal da proposta.`;
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -323,7 +431,7 @@ export function ProposalPDF({ proposal }: any) {
           <View style={styles.headerRow}>
             <View style={styles.logoBlock}>
               <Image style={styles.logo} src={resolveLogoPath()} />
-              <Text style={styles.title}>Proposta Comercial</Text>
+              <Text style={styles.title}>PROPOSTA COMERCIAL</Text>
               <Text style={styles.proposalCode}>
                 {formatProposalNumber(
                   proposal.proposalNumber,
@@ -333,7 +441,7 @@ export function ProposalPDF({ proposal }: any) {
             </View>
 
             <View style={styles.headerMeta}>
-              <Text style={styles.metaLine}>{proposal.title}</Text>
+              <Text style={styles.metaTitle}>{proposal.title}</Text>
               <Text style={styles.metaLine}>
                 Data: {formatDate(proposal.createdAt)}
               </Text>
@@ -345,34 +453,45 @@ export function ProposalPDF({ proposal }: any) {
         </View>
 
         <View style={[styles.section, styles.twoCols]}>
-          <View style={styles.col}>
+          <View style={[styles.col, styles.sectionCard]}>
             <Text style={styles.sectionTitle}>Cliente</Text>
 
-            <Text style={styles.label}>Razão social</Text>
-            <Text style={styles.value}>{proposal.customer.companyName}</Text>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Razão social</Text>
+              <Text style={styles.valueStrong}>
+                {proposal.customer.companyName}
+              </Text>
+            </View>
 
-            <Text style={styles.label}>Contato</Text>
-            <Text style={styles.value}>{proposal.customer.contactName}</Text>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Contato</Text>
+              <Text style={styles.value}>{proposal.customer.contactName}</Text>
+            </View>
 
-            <Text style={styles.label}>E-mail</Text>
-            <Text style={styles.value}>{proposal.customer.contactEmail}</Text>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>E-mail</Text>
+              <Text style={styles.value}>{proposal.customer.contactEmail}</Text>
+            </View>
           </View>
 
-          <View style={styles.col}>
+          <View style={[styles.col, styles.sectionCard]}>
             <Text style={styles.sectionTitle}>Parceiro</Text>
 
-            <Text style={styles.label}>Nome</Text>
-            <Text style={styles.value}>{proposal.partner.name}</Text>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Nome</Text>
+              <Text style={styles.valueStrong}>{proposal.partner.name}</Text>
+            </View>
 
-            <Text style={styles.label}>E-mail</Text>
-            <Text style={styles.value}>{proposal.partner.email}</Text>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>E-mail</Text>
+              <Text style={styles.value}>{proposal.partner.email}</Text>
+            </View>
           </View>
         </View>
 
-        <View style={styles.descriptionBox}>
-          <Text style={styles.descriptionTitle}>Sobre a solução</Text>
-
-          <Text style={styles.descriptionText}>
+        <View style={styles.sectionSoftCard}>
+          <Text style={styles.sectionTitle}>Sobre a solução</Text>
+          <Text style={styles.bodyText}>
             O Partsec One é a solução da Partsec para centralização de
             monitoramento, visibilidade operacional e consolidação de
             informações do ambiente de TI e segurança.
@@ -383,108 +502,85 @@ export function ProposalPDF({ proposal }: any) {
           </Text>
         </View>
 
-        <View style={styles.scopeBox}>
-          <Text style={styles.scopeTitle}>Escopo desta proposta</Text>
-
-          <Text style={styles.scopeText}>
-            {proposal.scopeDescription?.trim()
-              ? proposal.scopeDescription
-              : "Escopo específico não informado."}
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Configuração da proposta</Text>
-
-          <View style={styles.highlightGrid}>
-            <View style={styles.highlightCard}>
-              <Text style={styles.highlightLabel}>Plano</Text>
-              <Text style={styles.highlightValue}>
-                {formatProposalPlan(proposal.plan)}
-              </Text>
-            </View>
-
-            <View style={styles.highlightCard}>
-              <Text style={styles.highlightLabel}>Ativos</Text>
-              <Text style={styles.highlightValue}>
-                {proposal.activeCount}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Financeiro</Text>
-
-          <View style={styles.table}>
-            <View style={styles.tableHeader}>
-              <Text style={styles.cellLabel}>Descrição</Text>
-              <Text style={styles.cellValue}>Valor</Text>
-            </View>
-
-            <View style={styles.tableRow}>
-              <Text style={styles.cellLabel}>Assinatura mensal</Text>
-              <Text style={styles.cellValue}>
-                {formatCurrency(proposal.subtotal)}
-              </Text>
-            </View>
-
-            {Number(proposal.discountValue) > 0 ? (
-              <View style={styles.tableRow}>
-                <Text style={styles.cellLabel}>
-                  Desconto mensal ({Number(proposal.discountPercent)}%)
-                </Text>
-                <Text style={styles.cellValue}>
-                  - {formatCurrency(proposal.discountValue)}
-                </Text>
-              </View>
-            ) : null}
-
-            <View style={styles.tableRow}>
-              <Text style={styles.cellLabel}>Setup inicial (único)</Text>
-              <Text style={styles.cellValue}>
-                {formatCurrency(proposal.setupFee)}
-              </Text>
-            </View>
-
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Total mensal</Text>
-              <Text style={styles.totalValue}>
-                {formatCurrency(proposal.total)}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.notesSection}>
-          <Text style={styles.sectionTitle}>Observações</Text>
-          <View style={styles.noteBox}>
-            <Text style={styles.notesText}>
-              {proposal.notes || "Nenhuma observação registrada."}
+        <View style={[styles.section, { marginTop: 14 }]}>
+          <View style={styles.sectionSoftCard}>
+            <Text style={styles.sectionTitle}>Escopo desta proposta</Text>
+            <Text style={styles.bodyText}>
+              {proposal.scopeDescription?.trim()
+                ? proposal.scopeDescription
+                : "Escopo específico não informado."}
             </Text>
           </View>
         </View>
-	<View style={styles.termsSection}>
-  <View style={styles.termsGrid}>
-    <View style={styles.termsCol}>
-      <Text style={styles.termsTitle}>Validade da proposta</Text>
-      <Text style={styles.termsText}>
-        Esta proposta é válida por 15 dias corridos a partir da data de emissão.
-      </Text>
-    </View>
 
-    <View style={styles.termsCol}>
-      <Text style={styles.termsTitle}>Condições comerciais</Text>
-      <Text style={styles.termsText}>
-        Os valores apresentados contemplam o escopo descrito nesta proposta.
-        O setup inicial é cobrado em parcela única e a mensalidade refere-se à
-        recorrência do serviço. Quaisquer alterações de escopo poderão implicar
-        revisão comercial. O início da operação está condicionado ao aceite da
-        proposta e ao alinhamento de implantação.
-      </Text>
-    </View>
-  </View>
-</View>
+        <View style={styles.section}>
+          <View style={styles.twoCols}>
+            <View style={[styles.col, { width: "38%" }]}>
+              <Text style={styles.sectionTitle}>Configuração da proposta</Text>
+
+              <View style={styles.configGrid}>
+                <View style={styles.configCard}>
+                  <Text style={styles.configLabel}>Plano</Text>
+                  <Text style={styles.configValue}>
+                    {formatProposalPlan(proposal.plan)}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={[styles.configGrid, { marginTop: 10 }]}>
+                <View style={styles.configCard}>
+                  <Text style={styles.configLabel}>Ativos</Text>
+                  <Text style={styles.configValue}>
+                    {proposal.activeCount}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={[styles.col, { width: "58%" }]}>
+              <Text style={styles.sectionTitle}>Financeiro</Text>
+
+              <View style={styles.financialBox}>
+                <View style={styles.financialHeader}>
+                  <Text style={styles.financialHeaderLabel}>Descrição</Text>
+                  <Text style={styles.financialHeaderValue}>Valor</Text>
+                </View>
+
+                <View style={styles.financialRow}>
+                  <Text style={styles.financialLabel}>Assinatura mensal</Text>
+                  <Text style={styles.financialValue}>
+                    {formatCurrency(proposal.subtotal)}
+                  </Text>
+                </View>
+
+                {Number(proposal.discountValue) > 0 ? (
+                  <View style={styles.financialRow}>
+                    <Text style={styles.financialLabel}>
+                      Desconto mensal ({Number(proposal.discountPercent)}%)
+                    </Text>
+                    <Text style={styles.financialValue}>
+                      - {formatCurrency(proposal.discountValue)}
+                    </Text>
+                  </View>
+                ) : null}
+
+                <View style={styles.financialRow}>
+                  <Text style={styles.financialLabel}>Setup inicial (único)</Text>
+                  <Text style={styles.financialValue}>
+                    {formatCurrency(proposal.setupFee)}
+                  </Text>
+                </View>
+
+                <View style={styles.financialTotalRow}>
+                  <Text style={styles.financialTotalLabel}>Total mensal</Text>
+                  <Text style={styles.financialTotalValue}>
+                    {formatCurrency(proposal.total)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
 
         <View style={styles.footer} fixed>
           <Text style={styles.footerLine}>www.partsec.com.br</Text>
@@ -492,6 +588,124 @@ export function ProposalPDF({ proposal }: any) {
           <Text style={styles.footerLine}>+55 51 99329-6675</Text>
         </View>
       </Page>
+	
+		<Page size="A4" style={styles.page}>
+	<View style={styles.topBar} />
+
+		<View style={styles.sectionSoftCard} wrap={false}>
+		<Text style={styles.sectionTitle}>Observações</Text>
+		<Text style={styles.notesText}>{notesText}</Text>
+	</View>
+
+	<View style={[styles.section, { marginTop: 14 }]}>
+		<View style={styles.termsGrid}>
+		<View style={styles.termsCol}>
+        <Text style={styles.termsTitle}>Validade da proposta</Text>
+        <Text style={styles.termsText}>
+          Esta proposta é válida por 15 dias corridos a partir da data de
+          emissão.
+        </Text>
+    </View>
+
+		<View style={styles.termsCol}>
+        <Text style={styles.termsTitle}>Condições comerciais</Text>
+        <Text style={styles.termsText}>
+          Os valores apresentados contemplam o escopo descrito nesta proposta.
+          O setup inicial é cobrado em parcela única e a mensalidade refere-se
+          à recorrência do serviço. Quaisquer alterações de escopo poderão
+          implicar revisão comercial. O início da operação está condicionado ao
+          aceite da proposta e ao alinhamento de implantação.
+        </Text>
+      </View>
+    </View>
+  </View>
+
+  <View style={[styles.section, { marginTop: 10 }]}>
+    <View style={styles.sectionSoftCard}>
+      <Text style={styles.sectionTitle}>Sobre a Partsec</Text>
+
+      <Text style={styles.bodyText}>
+        A Partsec é uma empresa brasileira especializada em monitoramento,
+        visibilidade e resposta para ambientes de TI e Segurança.
+        {"\n\n"}
+        Combinamos tecnologia, automação e inteligência para entregar
+        operações mais eficientes, seguras e resilientes.
+      </Text>
+
+      <View style={styles.bulletList}>
+        <Text style={styles.bulletItem}>• Monitoramento 24x7</Text>
+        <Text style={styles.bulletItem}>• Visibilidade unificada</Text>
+        <Text style={styles.bulletItem}>• Resposta rápida e assertiva</Text>
+        <Text style={styles.bulletItem}>
+          • Relatórios e indicadores inteligentes
+        </Text>
+        <Text style={styles.bulletItem}>
+          • Equipe especialista e certificada
+        </Text>
+      </View>
+
+      <View style={styles.emphasisBox}>
+        <Text style={styles.emphasisText}>
+          Nosso propósito é transformar dados em ação para que nossos clientes
+          operem com confiança e foco no que realmente importa.
+        </Text>
+      </View>
+    </View>
+  </View>
+
+  <View style={styles.footer} fixed>
+    <Text style={styles.footerLine}>www.partsec.com.br</Text>
+    <Text style={styles.footerLine}>comercial@partsec.com.br</Text>
+    <Text style={styles.footerLine}>+55 51 99329-6675</Text>
+  </View>
+</Page>
+
+<Page size="A4" style={styles.page}>
+  <View style={styles.topBar} />
+
+  <View style={styles.acceptanceCard}>
+    <Text style={styles.sectionTitle}>Aceite da proposta</Text>
+
+    <Text style={styles.bodyText}>
+      Ao assinar abaixo, o cliente declara que está de acordo com os termos e
+      condições desta proposta comercial.
+    </Text>
+
+    <View style={styles.signatureField}>
+      <Text style={styles.signatureLabel}>Empresa / Cliente:</Text>
+      <View style={styles.signatureLine} />
+    </View>
+
+    <View style={styles.signatureField}>
+      <Text style={styles.signatureLabel}>Nome do responsável:</Text>
+      <View style={styles.signatureLine} />
+    </View>
+
+    <View style={styles.signatureField}>
+      <Text style={styles.signatureLabel}>Cargo:</Text>
+      <View style={styles.signatureLineShort} />
+    </View>
+
+    <View style={styles.signatureField}>
+      <Text style={styles.signatureLabel}>Data:</Text>
+      <View style={styles.signatureLineShort} />
+    </View>
+
+    <View style={styles.signatureBox}>
+      <View style={styles.signatureArea} />
+      <Text style={styles.signatureCaption}>
+        Assinatura do responsável
+      </Text>
+    </View>
+  </View>
+
+  <View style={styles.footer} fixed>
+    <Text style={styles.footerLine}>www.partsec.com.br</Text>
+    <Text style={styles.footerLine}>comercial@partsec.com.br</Text>
+    <Text style={styles.footerLine}>+55 51 99329-6675</Text>
+  </View>
+</Page>
+
     </Document>
   );
 }
