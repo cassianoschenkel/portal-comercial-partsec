@@ -10,6 +10,48 @@ import { prisma } from "@/lib/prisma";
 import { calculateProposalPricing } from "@/lib/pricing";
 import { proposalSchema } from "@/lib/validations/proposal";
 
+function parseModulesFromFormData(formData: FormData) {
+  const modulesJson = formData.get("modulesJson");
+
+  if (typeof modulesJson === "string" && modulesJson.trim()) {
+    try {
+      const parsed = JSON.parse(modulesJson);
+
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch {
+      throw new Error("Os módulos informados são inválidos.");
+    }
+  }
+
+  const indexedModules = new Map<
+    number,
+    { moduleType?: FormDataEntryValue; quantity?: FormDataEntryValue }
+  >();
+
+  for (const [key, value] of formData.entries()) {
+    const match = key.match(/^modules\[(\d+)\]\.(moduleType|quantity)$/);
+
+    if (!match) {
+      continue;
+    }
+
+    const index = Number(match[1]);
+    const field = match[2] as "moduleType" | "quantity";
+    const current = indexedModules.get(index) ?? {};
+    current[field] = value;
+    indexedModules.set(index, current);
+  }
+
+  return Array.from(indexedModules.entries())
+    .sort(([left], [right]) => left - right)
+    .map(([, module]) => ({
+      moduleType: module.moduleType,
+      quantity: module.quantity,
+    }));
+}
+
 export async function createProposal(formData: FormData) {
   const session = await getServerSession(authOptions);
 
@@ -22,6 +64,7 @@ export async function createProposal(formData: FormData) {
     title: formData.get("title"),
     plan: formData.get("plan"),
     activeCount: formData.get("activeCount"),
+    modules: parseModulesFromFormData(formData),
     discountPercent: formData.get("discountPercent"),
     discountAmount: formData.get("discountAmount"),
     validityDays: formData.get("validityDays"),
