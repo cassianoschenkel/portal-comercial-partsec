@@ -66,11 +66,11 @@ export function ProposalForm({ customers, action }: Props) {
             name="plan"
             required
             className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2"
-            defaultValue={ProposalPlan.ESSENTIAL}
+            defaultValue={ProposalPlan.BASIC}
           >
-            <option value={ProposalPlan.ESSENTIAL}>Essential</option>
+            <option value={ProposalPlan.BASIC}>Basic</option>
             <option value={ProposalPlan.PROFESSIONAL}>Professional</option>
-            <option value={ProposalPlan.ENTERPRISE}>Enterprise</option>
+            <option value={ProposalPlan.ADVANCED}>Advanced</option>
           </select>
         </div>
 
@@ -104,7 +104,7 @@ export function ProposalForm({ customers, action }: Props) {
             name="discountPercent"
             type="number"
             min={0}
-            max={20}
+            max={10}
             step="0.01"
             defaultValue={0}
             required

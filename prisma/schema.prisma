@@ -21,9 +21,26 @@ enum ProposalStatus {
 }
 
 enum ProposalPlan {
-  ESSENTIAL
+  BASIC
   PROFESSIONAL
-  ENTERPRISE
+  ADVANCED
+}
+
+enum ModuleType {
+  INFRASTRUCTURE
+  ENDPOINT_SECURITY
+  CLOUD_SERVICES
+  FIREWALL
+  WEB_MONITORING
+}
+
+enum UnitType {
+  ASSET
+  ENDPOINT
+  USER
+  FIREWALL
+  URL
+  TENANT
 }
 
 model User {
@@ -87,8 +104,57 @@ model Proposal {
   acceptedByName              String?
   acceptedByEmail             String?
   acceptedAt                  DateTime?
+  monthlySubtotal             Decimal        @default(0) @db.Decimal(10, 2)
+  setupSubtotal               Decimal        @default(0) @db.Decimal(10, 2)
+  discountAmount              Decimal        @default(0) @db.Decimal(10, 2)
+  finalMonthlyPrice           Decimal        @default(0) @db.Decimal(10, 2)
+  finalSetupPrice             Decimal        @default(0) @db.Decimal(10, 2)
+  firstMonthTotal             Decimal        @default(0) @db.Decimal(10, 2)
+  partnerCommissionPct        Decimal        @default(0) @db.Decimal(5, 2)
+  partnerCommission           Decimal        @default(0) @db.Decimal(10, 2)
+  partsecNetRevenue           Decimal        @default(0) @db.Decimal(10, 2)
+  validityDays                Int            @default(15)
+  internalNotes               String?
   customer                    Customer       @relation(fields: [customerId], references: [id], onDelete: Restrict)
   partner                     User           @relation("PartnerProposals", fields: [partnerId], references: [id], onDelete: Restrict)
+  items                       ProposalItem[]
   createdAt                   DateTime       @default(now())
   updatedAt                   DateTime       @updatedAt
+}
+
+model ProposalItem {
+  id           String     @id @default(cuid())
+  proposalId   String
+  moduleType   ModuleType
+  unitType     UnitType
+  description  String?
+  quantity     Int
+  rangeLabel   String
+  monthlyPrice Decimal    @db.Decimal(10, 2)
+  setupPrice   Decimal    @db.Decimal(10, 2)
+  proposal     Proposal   @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([proposalId])
+  @@index([moduleType])
+}
+
+model PriceTable {
+  id           String       @id @default(cuid())
+  plan         ProposalPlan
+  moduleType   ModuleType
+  unitType     UnitType
+  rangeLabel   String
+  minQuantity  Int
+  maxQuantity  Int
+  monthlyPrice Decimal      @db.Decimal(10, 2)
+  setupPrice   Decimal      @db.Decimal(10, 2)
+  active       Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([plan, moduleType, minQuantity, maxQuantity], name: "PriceTable_plan_moduleType_minQuantity_maxQuantity_key")
+  @@index([plan, moduleType, active])
+  @@index([unitType])
 }

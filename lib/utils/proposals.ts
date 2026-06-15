@@ -11,9 +11,9 @@ export function formatProposalNumber(
 
 export function formatProposalPlan(plan: string) {
   const map: Record<string, string> = {
-    ESSENTIAL: "Essential",
+    BASIC: "Basic",
     PROFESSIONAL: "Professional",
-    ENTERPRISE: "Enterprise",
+    ADVANCED: "Advanced",
   };
 
   return map[plan] ?? plan;

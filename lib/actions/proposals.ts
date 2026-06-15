@@ -1,13 +1,13 @@
 "use server";
 
-import { ProposalStatus, UserRole } from "@prisma/client";
+import { ModuleType, ProposalStatus, UserRole } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { calculateProposalTotals } from "@/lib/pricing";
+import { calculateProposalPricing } from "@/lib/pricing";
 import { proposalSchema } from "@/lib/validations/proposal";
 
 export async function createProposal(formData: FormData) {
@@ -23,7 +23,10 @@ export async function createProposal(formData: FormData) {
     plan: formData.get("plan"),
     activeCount: formData.get("activeCount"),
     discountPercent: formData.get("discountPercent"),
+    discountAmount: formData.get("discountAmount"),
+    validityDays: formData.get("validityDays"),
     notes: formData.get("notes"),
+    internalNotes: formData.get("internalNotes"),
     scopeDescription: formData.get("scopeDescription"),
   });
 
@@ -52,12 +55,33 @@ export async function createProposal(formData: FormData) {
     throw new Error("Cliente inválido para este usuário.");
   }
 
-  const totals = calculateProposalTotals({
+  const modules =
+    parsed.data.modules && parsed.data.modules.length > 0
+      ? parsed.data.modules
+      : [
+          {
+            moduleType: ModuleType.INFRASTRUCTURE,
+            quantity: parsed.data.activeCount ?? 0,
+          },
+        ];
+
+  const totals = await calculateProposalPricing({
     plan: parsed.data.plan,
-    activeCount: parsed.data.activeCount,
+    modules,
     discountPercent: parsed.data.discountPercent,
-    commissionPercent: Number(partner.commissionPercent),
+    discountAmount: parsed.data.discountAmount,
+    partnerCommissionPct: Number(partner.commissionPercent),
+    role: session.user.role,
   });
+
+  const legacyActiveCount = modules.reduce(
+    (total, item) => total + item.quantity,
+    0
+  );
+  const legacyUnitPrice =
+    legacyActiveCount > 0
+      ? Number((totals.monthlySubtotal / legacyActiveCount).toFixed(2))
+      : 0;
 
   const proposal = await prisma.proposal.create({
     data: {
@@ -66,17 +90,39 @@ export async function createProposal(formData: FormData) {
       title: parsed.data.title,
       status: ProposalStatus.DRAFT,
       plan: parsed.data.plan,
-      activeCount: parsed.data.activeCount,
-      unitPrice: totals.unitPrice.toString(),
-      subtotal: totals.subtotal.toString(),
+      activeCount: legacyActiveCount,
+      unitPrice: legacyUnitPrice.toString(),
+      subtotal: totals.monthlySubtotal.toString(),
       discountPercent: totals.discountPercent.toString(),
-      discountValue: totals.discountValue.toString(),
-      total: totals.total.toString(),
-      setupFee: totals.setupFee.toString(),
-      partnerCommissionPercent: totals.partnerCommissionPercent.toString(),
-      partnerCommissionValue: totals.partnerCommissionValue.toString(),
+      discountValue: totals.discountAmount.toString(),
+      total: totals.finalMonthlyPrice.toString(),
+      setupFee: totals.setupSubtotal.toString(),
+      partnerCommissionPercent: totals.partnerCommissionPct.toString(),
+      partnerCommissionValue: totals.partnerCommission.toString(),
+      monthlySubtotal: totals.monthlySubtotal.toString(),
+      setupSubtotal: totals.setupSubtotal.toString(),
+      discountAmount: totals.discountAmount.toString(),
+      finalMonthlyPrice: totals.finalMonthlyPrice.toString(),
+      finalSetupPrice: totals.finalSetupPrice.toString(),
+      firstMonthTotal: totals.firstMonthTotal.toString(),
+      partnerCommissionPct: totals.partnerCommissionPct.toString(),
+      partnerCommission: totals.partnerCommission.toString(),
+      partsecNetRevenue: totals.partsecNetRevenue.toString(),
+      validityDays: parsed.data.validityDays,
       notes: parsed.data.notes || null,
+      internalNotes: parsed.data.internalNotes || null,
       scopeDescription: parsed.data.scopeDescription || null,
+      items: {
+        create: totals.items.map((item) => ({
+          moduleType: item.moduleType,
+          unitType: item.unitType,
+          description: item.description,
+          quantity: item.quantity,
+          rangeLabel: item.rangeLabel,
+          monthlyPrice: item.monthlyPrice.toString(),
+          setupPrice: item.setupPrice.toString(),
+        })),
+      },
     },
   });
 
