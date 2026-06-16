@@ -1,7 +1,10 @@
 import { PartnerForm } from "@/components/partners/partner-form";
 import { createPartner } from "@/lib/actions/partners";
+import { requireAdmin } from "@/lib/authz";
 
-export default function NewPartnerPage() {
+export default async function NewPartnerPage() {
+  await requireAdmin();
+
   return (
     <div className="space-y-6">
       <div>

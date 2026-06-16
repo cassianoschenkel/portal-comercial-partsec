@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { PartnerForm } from "@/components/partners/partner-form";
 import { updatePartner } from "@/lib/actions/partners";
+import { requireAdmin } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 export default async function EditPartnerPage({
@@ -9,6 +10,8 @@ export default async function EditPartnerPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin();
+
   const { id } = await params;
 
   const partner = await prisma.user.findFirst({

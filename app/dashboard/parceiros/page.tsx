@@ -1,9 +1,12 @@
 import Link from "next/link";
 
 import { PartnersTable } from "@/components/partners/partners-table";
+import { requireAdmin } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 export default async function PartnersPage() {
+  await requireAdmin();
+
   const partners = await prisma.user.findMany({
     where: {
       role: "PARTNER",

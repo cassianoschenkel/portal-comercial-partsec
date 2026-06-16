@@ -5,6 +5,7 @@ import { UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { requireAdmin } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import {
   createPartnerSchema,
@@ -12,6 +13,8 @@ import {
 } from "@/lib/validations/partner";
 
 export async function createPartner(formData: FormData) {
+  await requireAdmin();
+
   const parsed = createPartnerSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
@@ -54,6 +57,8 @@ export async function createPartner(formData: FormData) {
 }
 
 export async function updatePartner(id: string, formData: FormData) {
+  await requireAdmin();
+
   const parsed = updatePartnerSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
@@ -110,6 +115,8 @@ export async function updatePartner(id: string, formData: FormData) {
 }
 
 export async function deletePartner(id: string) {
+  await requireAdmin();
+
   const proposalCount = await prisma.proposal.count({
     where: { partnerId: id },
   });
