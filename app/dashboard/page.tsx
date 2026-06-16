@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { UserRole } from "@prisma/client";
-import { redirect } from "next/navigation";
 
-import { authOptions } from "@/lib/auth";
+import {
+  getEffectivePartnerId,
+  getRequiredSession,
+  isAdmin,
+} from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { formatProposalNumber } from "@/lib/utils/proposals";
 
@@ -15,23 +16,14 @@ function formatCurrency(value: unknown) {
 }
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getRequiredSession();
+  const partnerId = getEffectivePartnerId(session);
 
-  if (!session?.user?.id || !session.user.role) {
-    redirect("/login");
-  }
-
-  const whereFilter =
-    session.user.role === UserRole.ADMIN
-      ? {}
-      : { partnerId: session.user.id };
+  const whereFilter = isAdmin(session) ? {} : { partnerId: partnerId ?? "" };
 
   const [customersCount, proposalsCount, recentProposals] = await Promise.all([
     prisma.customer.count({
-      where:
-        session.user.role === UserRole.ADMIN
-          ? {}
-          : { partnerId: session.user.id },
+      where: whereFilter,
     }),
     prisma.proposal.count({
       where: whereFilter,

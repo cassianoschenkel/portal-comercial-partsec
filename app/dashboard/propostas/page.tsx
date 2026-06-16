@@ -1,26 +1,19 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { UserRole } from "@prisma/client";
-import { redirect } from "next/navigation";
 
 import { ProposalsTable } from "@/components/proposals/proposals-table";
-import { authOptions } from "@/lib/auth";
+import {
+  getEffectivePartnerId,
+  getRequiredSession,
+  isAdmin,
+} from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 export default async function ProposalsPage() {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id || !session.user.role) {
-    redirect("/login");
-  }
+  const session = await getRequiredSession();
+  const partnerId = getEffectivePartnerId(session);
 
   const proposals = await prisma.proposal.findMany({
-    where:
-      session.user.role === UserRole.ADMIN
-        ? {}
-        : {
-            partnerId: session.user.id,
-          },
+    where: isAdmin(session) ? {} : { partnerId: partnerId ?? "" },
     include: {
       customer: {
         select: {

@@ -2,6 +2,11 @@ import { notFound } from "next/navigation";
 
 import { PrintProposalButton } from "@/components/proposals/print-proposal-button";
 import { ProposalPreview } from "@/components/proposals/proposal-preview";
+import {
+  getEffectivePartnerId,
+  getRequiredSession,
+  isAdmin,
+} from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 export default async function PrintProposalPage({
@@ -9,10 +14,15 @@ export default async function PrintProposalPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await getRequiredSession();
+  const partnerId = getEffectivePartnerId(session);
   const { id } = await params;
 
-  const proposal = await prisma.proposal.findUnique({
-    where: { id },
+  const proposal = await prisma.proposal.findFirst({
+    where: {
+      id,
+      ...(isAdmin(session) ? {} : { partnerId: partnerId ?? "" }),
+    },
     include: {
       customer: true,
       partner: true,

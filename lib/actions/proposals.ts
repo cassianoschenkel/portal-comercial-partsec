@@ -1,11 +1,15 @@
 "use server";
 
 import { ModuleType, ProposalStatus, UserRole } from "@prisma/client";
-import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { authOptions } from "@/lib/auth";
+import {
+  getEffectivePartnerId,
+  getRequiredSession,
+  isAdmin,
+  requirePartnerScope,
+} from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { calculateProposalPricing } from "@/lib/pricing";
 import { proposalSchema } from "@/lib/validations/proposal";
@@ -53,11 +57,7 @@ function parseModulesFromFormData(formData: FormData) {
 }
 
 export async function createProposal(formData: FormData) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id || !session.user.role) {
-    throw new Error("Usuário não autenticado.");
-  }
+  const session = await getRequiredSession();
 
   const parsed = proposalSchema.safeParse({
     customerId: formData.get("customerId"),
@@ -77,26 +77,49 @@ export async function createProposal(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message || "Dados inválidos.");
   }
 
-  const partner = await prisma.user.findUnique({
-    where: { id: session.user.id },
-  });
-
-  if (!partner) {
-    throw new Error("Parceiro não encontrado.");
-  }
+  const partnerScopeId = getEffectivePartnerId(session);
 
   const customer = await prisma.customer.findFirst({
     where: {
       id: parsed.data.customerId,
-      ...(session.user.role === UserRole.ADMIN
+      ...(isAdmin(session)
         ? {}
-        : { partnerId: session.user.id }),
+        : { partnerId: requirePartnerScope(session) }),
     },
   });
 
   if (!customer) {
     throw new Error("Cliente inválido para este usuário.");
   }
+
+  const selectedPartnerId = String(formData.get("partnerId") || "").trim();
+  const proposalPartnerId = isAdmin(session)
+    ? selectedPartnerId || customer.partnerId
+    : partnerScopeId;
+
+  if (!proposalPartnerId) {
+    throw new Error("Parceiro não definido para esta proposta.");
+  }
+
+  const partner = await prisma.partner.findUnique({
+    where: { id: proposalPartnerId },
+    select: { defaultCommissionPercent: true },
+  });
+
+  const legacyPartnerUser = partner
+    ? null
+    : await prisma.user.findUnique({
+        where: { id: proposalPartnerId },
+        select: { commissionPercent: true },
+      });
+
+  if (!partner && !legacyPartnerUser) {
+    throw new Error("Parceiro não encontrado.");
+  }
+
+  const partnerCommissionPercent = Number(
+    partner?.defaultCommissionPercent ?? legacyPartnerUser?.commissionPercent ?? 0
+  );
 
   const modules =
     parsed.data.modules && parsed.data.modules.length > 0
@@ -113,8 +136,8 @@ export async function createProposal(formData: FormData) {
     modules,
     discountPercent: parsed.data.discountPercent,
     discountAmount: parsed.data.discountAmount,
-    partnerCommissionPct: Number(partner.commissionPercent),
-    role: session.user.role,
+    partnerCommissionPct: partnerCommissionPercent,
+    role: session.user.role === UserRole.ADMIN ? UserRole.ADMIN : UserRole.PARTNER,
   });
 
   const legacyActiveCount = modules.reduce(
@@ -129,7 +152,8 @@ export async function createProposal(formData: FormData) {
   const proposal = await prisma.proposal.create({
     data: {
       customerId: parsed.data.customerId,
-      partnerId: session.user.id,
+      partnerId: proposalPartnerId,
+      createdById: session.user.id,
       title: parsed.data.title,
       status: ProposalStatus.DRAFT,
       plan: parsed.data.plan,

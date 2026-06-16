@@ -485,7 +485,10 @@ type ProposalPDFProps = {
     };
     partner: {
       name: string;
-      email: string;
+      email: string | null;
+      phone?: string | null;
+      tradeName?: string | null;
+      document?: string | null;
     };
     items?: Array<{
       id: string;

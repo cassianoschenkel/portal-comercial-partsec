@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { UserRole } from "@prisma/client";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { CopyPublicLinkButton } from "@/components/proposals/copy-public-link-button";
 import { ProposalActions } from "@/components/proposals/proposal-actions";
 import { ProposalPreview } from "@/components/proposals/proposal-preview";
-import { authOptions } from "@/lib/auth";
+import {
+  getEffectivePartnerId,
+  getRequiredSession,
+  isAdmin,
+} from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { formatProposalNumber } from "@/lib/utils/proposals";
 
@@ -15,20 +17,17 @@ export default async function ProposalDetailsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id || !session.user.role) {
-    redirect("/login");
-  }
+  const session = await getRequiredSession();
+  const partnerId = getEffectivePartnerId(session);
 
   const { id } = await params;
 
   const proposal = await prisma.proposal.findFirst({
     where: {
       id,
-      ...(session.user.role === UserRole.ADMIN
+      ...(isAdmin(session)
         ? {}
-        : { partnerId: session.user.id }),
+        : { partnerId: partnerId ?? "" }),
     },
     include: {
       customer: true,

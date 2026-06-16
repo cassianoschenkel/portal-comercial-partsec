@@ -10,6 +10,9 @@ datasource db {
 enum UserRole {
   ADMIN
   PARTNER
+  PARTNER_ADMIN
+  PARTNER_SELLER
+  PARTNER_VIEWER
 }
 
 enum ProposalStatus {
@@ -49,14 +52,36 @@ model User {
   email             String     @unique
   passwordHash      String
   role              UserRole   @default(PARTNER)
+  partnerId         String?
   companyName       String?
   phone             String?
   commissionPercent Decimal    @default(30) @db.Decimal(5, 2)
   isActive          Boolean    @default(true)
-  customers         Customer[]
-  proposals         Proposal[] @relation("PartnerProposals")
+  partner           Partner?   @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  createdProposals  Proposal[] @relation("ProposalCreatedBy")
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
+
+  @@index([partnerId])
+}
+
+model Partner {
+  id                       String     @id @default(cuid())
+  name                     String
+  email                    String?
+  companyName              String
+  tradeName                String?
+  document                 String?
+  phone                    String?
+  defaultCommissionPercent Decimal    @default(30) @db.Decimal(5, 2)
+  isActive                 Boolean    @default(true)
+  users                    User[]
+  customers                Customer[]
+  proposals                Proposal[]
+  createdAt                DateTime   @default(now())
+  updatedAt                DateTime   @updatedAt
+
+  @@index([companyName])
 }
 
 model Customer {
@@ -70,7 +95,7 @@ model Customer {
   notes        String?
 
   partnerId String?
-  partner   User?   @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  partner   Partner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
 
   proposals Proposal[]
   createdAt DateTime   @default(now())
@@ -86,6 +111,7 @@ model Proposal {
   proposalNumber              Int            @unique @default(autoincrement())
   customerId                  String
   partnerId                   String
+  createdById                 String?
   title                       String
   status                      ProposalStatus @default(DRAFT)
   plan                        ProposalPlan
@@ -116,10 +142,15 @@ model Proposal {
   validityDays                Int            @default(15)
   internalNotes               String?
   customer                    Customer       @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  partner                     User           @relation("PartnerProposals", fields: [partnerId], references: [id], onDelete: Restrict)
+  partner                     Partner        @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  createdBy                   User?          @relation("ProposalCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   items                       ProposalItem[]
   createdAt                   DateTime       @default(now())
   updatedAt                   DateTime       @updatedAt
+
+  @@index([partnerId])
+  @@index([createdById])
+  @@index([status])
 }
 
 model ProposalItem {

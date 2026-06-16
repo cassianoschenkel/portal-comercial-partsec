@@ -1,10 +1,12 @@
-import { getServerSession } from "next-auth";
-import { UserRole } from "@prisma/client";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
-import { PartnerForm } from "@/components/partners/partner-form";
+import { CustomerForm } from "@/components/customers/customer-form";
 import { updateCustomer } from "@/lib/actions/customers";
-import { authOptions } from "@/lib/auth";
+import {
+  getEffectivePartnerId,
+  getRequiredSession,
+  isAdmin,
+} from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 export default async function EditCustomerPage({
@@ -12,20 +14,15 @@ export default async function EditCustomerPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id || !session.user.role) {
-    redirect("/login");
-  }
+  const session = await getRequiredSession();
+  const partnerId = getEffectivePartnerId(session);
 
   const { id } = await params;
 
   const customer = await prisma.customer.findFirst({
     where: {
       id,
-      ...(session.user.role === UserRole.ADMIN
-        ? {}
-        : { partnerId: session.user.id }),
+      ...(isAdmin(session) ? {} : { partnerId: partnerId ?? "" }),
     },
   });
 
@@ -37,14 +34,11 @@ export default async function EditCustomerPage({
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Editar cliente</h1>
 
-      {/* aqui use o form de cliente, não o de partner */}
-      {/* exemplo:
       <CustomerForm
         action={updateCustomer.bind(null, customer.id)}
         initialData={customer}
         submitLabel="Salvar alterações"
       />
-      */}
     </div>
   );
 }

@@ -1,26 +1,19 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { UserRole } from "@prisma/client";
-import { redirect } from "next/navigation";
 
 import { CustomersTable } from "@/components/customers/customers-table";
-import { authOptions } from "@/lib/auth";
+import {
+  getEffectivePartnerId,
+  getRequiredSession,
+  isAdmin,
+} from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 export default async function CustomersPage() {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id || !session.user.role) {
-    redirect("/login");
-  }
+  const session = await getRequiredSession();
+  const partnerId = getEffectivePartnerId(session);
 
   const customers = await prisma.customer.findMany({
-    where:
-      session.user.role === UserRole.ADMIN
-        ? {}
-        : {
-            partnerId: session.user.id,
-          },
+    where: isAdmin(session) ? {} : { partnerId: partnerId ?? "" },
     orderBy: {
       createdAt: "desc",
     },

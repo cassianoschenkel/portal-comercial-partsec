@@ -39,17 +39,37 @@ export async function createPartner(formData: FormData) {
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
 
-  await prisma.user.create({
-    data: {
-      name: parsed.data.name,
-      email: parsed.data.email.toLowerCase().trim(),
-      passwordHash,
-      role: UserRole.PARTNER,
-      companyName: parsed.data.companyName || null,
-      phone: parsed.data.phone || null,
-      commissionPercent: parsed.data.commissionPercent,
-      isActive: parsed.data.isActive ?? false,
-    },
+  await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        name: parsed.data.name,
+        email: parsed.data.email.toLowerCase().trim(),
+        passwordHash,
+        role: UserRole.PARTNER,
+        companyName: parsed.data.companyName || null,
+        phone: parsed.data.phone || null,
+        commissionPercent: parsed.data.commissionPercent,
+        isActive: parsed.data.isActive ?? false,
+      },
+    });
+
+    await tx.partner.create({
+      data: {
+        id: user.id,
+        name: parsed.data.name,
+        email: parsed.data.email.toLowerCase().trim(),
+        companyName: parsed.data.companyName || parsed.data.name,
+        tradeName: parsed.data.name,
+        phone: parsed.data.phone || null,
+        defaultCommissionPercent: parsed.data.commissionPercent,
+        isActive: parsed.data.isActive ?? false,
+      },
+    });
+
+    await tx.user.update({
+      where: { id: user.id },
+      data: { partnerId: user.id },
+    });
   });
 
   revalidatePath("/dashboard/parceiros");
@@ -105,10 +125,24 @@ export async function updatePartner(id: string, formData: FormData) {
     data.passwordHash = await bcrypt.hash(parsed.data.password, 12);
   }
 
-  await prisma.user.update({
-    where: { id },
-    data,
-  });
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id },
+      data,
+    }),
+    prisma.partner.update({
+      where: { id },
+      data: {
+        name: parsed.data.name,
+        email: parsed.data.email.toLowerCase().trim(),
+        companyName: parsed.data.companyName || parsed.data.name,
+        tradeName: parsed.data.name,
+        phone: parsed.data.phone || null,
+        defaultCommissionPercent: parsed.data.commissionPercent,
+        isActive: parsed.data.isActive ?? false,
+      },
+    }),
+  ]);
 
   revalidatePath("/dashboard/parceiros");
   redirect("/dashboard/parceiros");
@@ -127,9 +161,14 @@ export async function deletePartner(id: string) {
     );
   }
 
-  await prisma.user.delete({
-    where: { id },
-  });
+  await prisma.$transaction([
+    prisma.user.delete({
+      where: { id },
+    }),
+    prisma.partner.delete({
+      where: { id },
+    }),
+  ]);
 
   revalidatePath("/dashboard/parceiros");
 }

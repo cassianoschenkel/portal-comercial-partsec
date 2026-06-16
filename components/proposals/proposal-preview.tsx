@@ -50,7 +50,10 @@ type ProposalPreviewProps = {
     };
     partner: {
       name: string;
-      email: string;
+      email: string | null;
+      phone?: string | null;
+      tradeName?: string | null;
+      document?: string | null;
     };
     items?: Array<{
       id: string;
@@ -318,7 +321,8 @@ export function ProposalPreview({
                     Parceiro responsável
                   </p>
                   <p className="mt-1">
-                    {proposal.partner.name} · {proposal.partner.email}
+                    {proposal.partner.name} ·{" "}
+                    {proposal.partner.email ?? "Não informado"}
                   </p>
                 </div>
 

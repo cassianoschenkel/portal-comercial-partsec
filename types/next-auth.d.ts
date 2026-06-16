@@ -9,12 +9,14 @@ declare module "next-auth" {
       name: string;
       email: string;
       role: UserRole;
+      partnerId?: string | null;
     };
   }
 
   interface User {
     id: string;
     role: UserRole;
+    partnerId?: string | null;
   }
 }
 
@@ -22,5 +24,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     role: UserRole;
+    partnerId?: string | null;
   }
 }

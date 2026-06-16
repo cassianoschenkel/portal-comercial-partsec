@@ -1,20 +1,19 @@
 "use server";
 
-import { getServerSession } from "next-auth";
-import { UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { authOptions } from "@/lib/auth";
+import {
+  getEffectivePartnerId,
+  getRequiredSession,
+  isAdmin,
+  requirePartnerScope,
+} from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { customerSchema } from "@/lib/validations/customer";
 
 export async function createCustomer(formData: FormData) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id || !session.user.role) {
-    throw new Error("Usuário não autenticado.");
-  }
+  const session = await getRequiredSession();
 
   const parsed = customerSchema.safeParse({
     companyName: formData.get("companyName"),
@@ -33,8 +32,7 @@ export async function createCustomer(formData: FormData) {
   await prisma.customer.create({
     data: {
       ...parsed.data,
-      partnerId:
-        session.user.role === UserRole.ADMIN ? null : session.user.id,
+      partnerId: isAdmin(session) ? null : requirePartnerScope(session),
     },
   });
 
@@ -43,11 +41,7 @@ export async function createCustomer(formData: FormData) {
 }
 
 export async function updateCustomer(id: string, formData: FormData) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id || !session.user.role) {
-    throw new Error("Usuário não autenticado.");
-  }
+  const session = await getRequiredSession();
 
   const parsed = customerSchema.safeParse({
     companyName: formData.get("companyName"),
@@ -66,9 +60,9 @@ export async function updateCustomer(id: string, formData: FormData) {
   const customer = await prisma.customer.findFirst({
     where: {
       id,
-      ...(session.user.role === UserRole.ADMIN
+      ...(isAdmin(session)
         ? {}
-        : { partnerId: session.user.id }),
+        : { partnerId: getEffectivePartnerId(session) ?? "" }),
     },
   });
 
@@ -86,18 +80,14 @@ export async function updateCustomer(id: string, formData: FormData) {
 }
 
 export async function deleteCustomer(id: string) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id || !session.user.role) {
-    throw new Error("Usuário não autenticado.");
-  }
+  const session = await getRequiredSession();
 
   const customer = await prisma.customer.findFirst({
     where: {
       id,
-      ...(session.user.role === UserRole.ADMIN
+      ...(isAdmin(session)
         ? {}
-        : { partnerId: session.user.id }),
+        : { partnerId: getEffectivePartnerId(session) ?? "" }),
     },
   });
 

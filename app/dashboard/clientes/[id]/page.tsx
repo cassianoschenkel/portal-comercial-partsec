@@ -2,6 +2,11 @@ import { notFound } from "next/navigation";
 
 import { CustomerForm } from "@/components/customers/customer-form";
 import { updateCustomer } from "@/lib/actions/customers";
+import {
+  getEffectivePartnerId,
+  getRequiredSession,
+  isAdmin,
+} from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 type Props = {
@@ -9,10 +14,15 @@ type Props = {
 };
 
 export default async function EditCustomerPage({ params }: Props) {
+  const session = await getRequiredSession();
+  const partnerId = getEffectivePartnerId(session);
   const { id } = await params;
 
-  const customer = await prisma.customer.findUnique({
-    where: { id },
+  const customer = await prisma.customer.findFirst({
+    where: {
+      id,
+      ...(isAdmin(session) ? {} : { partnerId: partnerId ?? "" }),
+    },
   });
 
   if (!customer) {

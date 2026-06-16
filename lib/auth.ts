@@ -41,6 +41,11 @@ export const authOptions: NextAuthOptions = {
     return null;
   }
 
+  if (!user.isActive) {
+    console.log("USUÁRIO INATIVO");
+    return null;
+  }
+
   const passwordMatches = await bcrypt.compare(password, user.passwordHash);
 
   console.log("PASSWORD MATCH:", passwordMatches);
@@ -56,7 +61,8 @@ export const authOptions: NextAuthOptions = {
     id: user.id,
     name: user.name,
     email: user.email,
-    role: user.role
+    role: user.role,
+    partnerId: user.partnerId
   };
 }
     })
@@ -66,6 +72,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.partnerId = user.partnerId;
       }
 
       return token;
@@ -74,6 +81,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
+        session.user.partnerId = token.partnerId;
       }
 
       return session;
