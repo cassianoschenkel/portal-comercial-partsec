@@ -16,6 +16,7 @@ export default async function PrintProposalPage({
     include: {
       customer: true,
       partner: true,
+      items: true,
     },
   });
 

@@ -17,6 +17,7 @@ export async function GET(
     include: {
       customer: true,
       partner: true,
+      items: true,
     },
   });
 
@@ -25,7 +26,7 @@ export async function GET(
   }
 
   const stream = await renderToStream(
-    React.createElement(ProposalPDF, { proposal })
+    React.createElement(ProposalPDF, { proposal }) as any
   );
 
   const formattedNumber = formatProposalNumber(

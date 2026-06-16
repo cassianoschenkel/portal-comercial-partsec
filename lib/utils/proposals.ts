@@ -11,12 +11,37 @@ export function formatProposalNumber(
 
 export function formatProposalPlan(plan: string) {
   const map: Record<string, string> = {
-    BASIC: "Basic",
-    PROFESSIONAL: "Professional",
-    ADVANCED: "Advanced",
+    BASIC: "Básico",
+    PROFESSIONAL: "Profissional",
+    ADVANCED: "Avançado",
   };
 
   return map[plan] ?? plan;
+}
+
+export function formatModuleType(moduleType: string) {
+  const map: Record<string, string> = {
+    INFRASTRUCTURE: "Infraestrutura",
+    ENDPOINT_SECURITY: "Endpoint Security / Sophos Central",
+    CLOUD_SERVICES: "Cloud Services / Microsoft 365",
+    FIREWALL: "Firewall",
+    WEB_MONITORING: "Monitoramento Web",
+  };
+
+  return map[moduleType] ?? moduleType;
+}
+
+export function formatUnitType(unitType: string) {
+  const map: Record<string, string> = {
+    ASSET: "ativos",
+    ENDPOINT: "endpoints",
+    USER: "usuários",
+    FIREWALL: "firewalls",
+    URL: "URLs",
+    TENANT: "tenants",
+  };
+
+  return map[unitType] ?? unitType;
 }
 
 export function formatProposalStatus(status: string) {

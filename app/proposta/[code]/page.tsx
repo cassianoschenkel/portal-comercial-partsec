@@ -30,6 +30,7 @@ export default async function PublicProposalPage({
     include: {
       customer: true,
       partner: true,
+      items: true,
     },
   });
 
