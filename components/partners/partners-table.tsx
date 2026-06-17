@@ -87,6 +87,13 @@ export function PartnersTable({ partners }: Props) {
                     Editar
                   </Link>
 
+                  <Link
+                    href={`/dashboard/parceiros/${partner.id}/usuarios`}
+                    className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    Equipe
+                  </Link>
+
                   <DeletePartnerButton id={partner.id} />
                 </div>
               </td>
