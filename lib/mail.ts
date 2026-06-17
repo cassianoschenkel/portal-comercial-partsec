@@ -19,7 +19,8 @@ function smtpConfigured() {
       process.env.SMTP_PORT &&
       process.env.SMTP_USER &&
       process.env.SMTP_PASS &&
-      process.env.SMTP_FROM
+      process.env.SMTP_FROM &&
+      process.env.SMTP_FROM_NAME
   );
 }
 
