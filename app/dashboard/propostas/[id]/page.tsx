@@ -5,6 +5,7 @@ import { CopyPublicLinkButton } from "@/components/proposals/copy-public-link-bu
 import { ProposalActions } from "@/components/proposals/proposal-actions";
 import { ProposalPreview } from "@/components/proposals/proposal-preview";
 import {
+  canUpdateProposal,
   getEffectivePartnerId,
   getRequiredSession,
   isAdmin,
@@ -19,6 +20,7 @@ export default async function ProposalDetailsPage({
 }) {
   const session = await getRequiredSession();
   const partnerId = getEffectivePartnerId(session);
+  const canUpdate = canUpdateProposal(session);
 
   const { id } = await params;
 
@@ -75,10 +77,12 @@ export default async function ProposalDetailsPage({
             Baixar PDF
           </Link>
 
-          <ProposalActions
-            proposalId={proposal.id}
-            currentStatus={proposal.status}
-          />
+          {canUpdate ? (
+            <ProposalActions
+              proposalId={proposal.id}
+              currentStatus={proposal.status}
+            />
+          ) : null}
         </div>
       </div>
 

@@ -12,6 +12,8 @@ type PartnerUserRow = {
 
 type Props = {
   partnerId: string;
+  editBasePath?: string;
+  editableRoles?: UserRole[];
   users: PartnerUserRow[];
 };
 
@@ -23,13 +25,18 @@ const roleLabels: Record<UserRole, string> = {
   PARTNER_VIEWER: "Visualizador",
 };
 
-const editableRoles: UserRole[] = [
+const defaultEditableRoles: UserRole[] = [
   UserRole.PARTNER_ADMIN,
   UserRole.PARTNER_SELLER,
   UserRole.PARTNER_VIEWER,
 ];
 
-export function PartnerUsersTable({ partnerId, users }: Props) {
+export function PartnerUsersTable({
+  partnerId,
+  editBasePath = `/dashboard/parceiros/${partnerId}/usuarios`,
+  editableRoles = defaultEditableRoles,
+  users,
+}: Props) {
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <table className="min-w-full divide-y divide-slate-200">
@@ -86,7 +93,7 @@ export function PartnerUsersTable({ partnerId, users }: Props) {
                 <div className="flex justify-end">
                   {editableRoles.includes(user.role) ? (
                     <Link
-                      href={`/dashboard/parceiros/${partnerId}/usuarios/${user.id}/editar`}
+                      href={`${editBasePath}/${user.id}/editar`}
                       className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                     >
                       Editar

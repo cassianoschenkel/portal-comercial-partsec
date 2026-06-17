@@ -1,7 +1,11 @@
 import { CustomerForm } from "@/components/customers/customer-form";
 import { createCustomer } from "@/lib/actions/customers";
+import { getRequiredSession, requireCanCreateCustomer } from "@/lib/authz";
 
-export default function NewCustomerPage() {
+export default async function NewCustomerPage() {
+  const session = await getRequiredSession();
+  requireCanCreateCustomer(session);
+
   return (
     <div className="space-y-6">
       <div>

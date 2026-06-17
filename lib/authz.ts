@@ -27,6 +27,42 @@ export function isPartner(session: Session) {
   ].includes(session.user.role);
 }
 
+export function isPartnerAdmin(session: Session) {
+  return ["PARTNER", "PARTNER_ADMIN"].includes(session.user.role);
+}
+
+export function isPartnerSeller(session: Session) {
+  return session.user.role === "PARTNER_SELLER";
+}
+
+export function isPartnerViewer(session: Session) {
+  return session.user.role === "PARTNER_VIEWER";
+}
+
+export function canManagePartnerTeam(session: Session) {
+  return isPartnerAdmin(session);
+}
+
+export function canWriteCommercialData(session: Session) {
+  return isAdmin(session) || isPartnerAdmin(session) || isPartnerSeller(session);
+}
+
+export function canCreateProposal(session: Session) {
+  return canWriteCommercialData(session);
+}
+
+export function canUpdateProposal(session: Session) {
+  return canWriteCommercialData(session);
+}
+
+export function canCreateCustomer(session: Session) {
+  return canWriteCommercialData(session);
+}
+
+export function canUpdateCustomer(session: Session) {
+  return canWriteCommercialData(session);
+}
+
 export function getCurrentUserId(session: Session) {
   return session.user.id;
 }
@@ -61,4 +97,40 @@ export async function requireAdmin() {
   }
 
   return session;
+}
+
+export function requireCanManagePartnerTeam(session: Session) {
+  if (!canManagePartnerTeam(session)) {
+    notFound();
+  }
+}
+
+export function requireCanWriteCommercialData(session: Session) {
+  if (!canWriteCommercialData(session)) {
+    notFound();
+  }
+}
+
+export function requireCanCreateProposal(session: Session) {
+  if (!canCreateProposal(session)) {
+    notFound();
+  }
+}
+
+export function requireCanUpdateProposal(session: Session) {
+  if (!canUpdateProposal(session)) {
+    notFound();
+  }
+}
+
+export function requireCanCreateCustomer(session: Session) {
+  if (!canCreateCustomer(session)) {
+    notFound();
+  }
+}
+
+export function requireCanUpdateCustomer(session: Session) {
+  if (!canUpdateCustomer(session)) {
+    notFound();
+  }
 }

@@ -18,9 +18,10 @@ type CustomerRow = {
 
 type Props = {
   customers: CustomerRow[];
+  canWrite?: boolean;
 };
 
-export function CustomersTable({ customers }: Props) {
+export function CustomersTable({ customers, canWrite = true }: Props) {
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <table className="min-w-full divide-y divide-slate-200">
@@ -58,12 +59,16 @@ export function CustomersTable({ customers }: Props) {
               <td className="px-4 py-3">
                 <div className="flex justify-end gap-2">
                   <Link
-                    href={`/dashboard/clientes/${customer.id}/editar`}
+                    href={
+                      canWrite
+                        ? `/dashboard/clientes/${customer.id}/editar`
+                        : `/dashboard/clientes/${customer.id}`
+                    }
                     className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                   >
-                    Editar
+                    {canWrite ? "Editar" : "Ver"}
                   </Link>
-                  <DeleteCustomerButton id={customer.id} />
+                  {canWrite ? <DeleteCustomerButton id={customer.id} /> : null}
                 </div>
               </td>
             </tr>

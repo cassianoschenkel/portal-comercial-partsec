@@ -6,11 +6,14 @@ import {
   getEffectivePartnerId,
   getRequiredSession,
   isAdmin,
+  requireCanCreateProposal,
 } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
 export default async function NewProposalPage() {
   const session = await getRequiredSession();
+  requireCanCreateProposal(session);
+
   const partnerId = getEffectivePartnerId(session);
 
   const customers = await prisma.customer.findMany({

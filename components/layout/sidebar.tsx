@@ -25,7 +25,12 @@ export async function Sidebar() {
       ? [{ href: "/dashboard/parceiros", label: "Parceiros" }]
       : [];
 
-  const items = [...commonItems, ...adminItems];
+  const teamItems: NavItem[] =
+    role === UserRole.PARTNER_ADMIN || role === UserRole.PARTNER
+      ? [{ href: "/dashboard/equipe", label: "Equipe" }]
+      : [];
+
+  const items = [...commonItems, ...adminItems, ...teamItems];
 
   return (
     <aside className="hidden min-h-screen w-64 border-r border-slate-200 bg-white lg:block">

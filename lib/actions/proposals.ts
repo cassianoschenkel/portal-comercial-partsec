@@ -8,6 +8,8 @@ import {
   getEffectivePartnerId,
   getRequiredSession,
   isAdmin,
+  requireCanCreateProposal,
+  requireCanUpdateProposal,
   requirePartnerScope,
 } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
@@ -58,6 +60,7 @@ function parseModulesFromFormData(formData: FormData) {
 
 export async function createProposal(formData: FormData) {
   const session = await getRequiredSession();
+  requireCanCreateProposal(session);
 
   const parsed = proposalSchema.safeParse({
     customerId: formData.get("customerId"),
@@ -232,6 +235,23 @@ export async function updateProposalStatus(
   id: string,
   status: ProposalStatus
 ) {
+  const session = await getRequiredSession();
+  requireCanUpdateProposal(session);
+
+  const proposal = await prisma.proposal.findFirst({
+    where: {
+      id,
+      ...(isAdmin(session)
+        ? {}
+        : { partnerId: requirePartnerScope(session) }),
+    },
+    select: { id: true },
+  });
+
+  if (!proposal) {
+    return;
+  }
+
   await prisma.proposal.update({
     where: { id },
     data: { status },

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { CustomersTable } from "@/components/customers/customers-table";
 import {
+  canCreateCustomer,
   getEffectivePartnerId,
   getRequiredSession,
   isAdmin,
@@ -11,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 export default async function CustomersPage() {
   const session = await getRequiredSession();
   const partnerId = getEffectivePartnerId(session);
+  const canCreate = canCreateCustomer(session);
 
   const customers = await prisma.customer.findMany({
     where: isAdmin(session) ? {} : { partnerId: partnerId ?? "" },
@@ -34,15 +36,17 @@ export default async function CustomersPage() {
           </p>
         </div>
 
-        <Link
-          href="/dashboard/clientes/novo"
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-        >
-          Novo cliente
-        </Link>
+        {canCreate ? (
+          <Link
+            href="/dashboard/clientes/novo"
+            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            Novo cliente
+          </Link>
+        ) : null}
       </div>
 
-      <CustomersTable customers={customers} />
+      <CustomersTable customers={customers} canWrite={canCreate} />
     </div>
   );
 }

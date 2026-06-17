@@ -6,6 +6,7 @@ import {
   getEffectivePartnerId,
   getRequiredSession,
   isAdmin,
+  requireCanUpdateCustomer,
 } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
@@ -15,6 +16,8 @@ export default async function EditCustomerPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await getRequiredSession();
+  requireCanUpdateCustomer(session);
+
   const partnerId = getEffectivePartnerId(session);
 
   const { id } = await params;

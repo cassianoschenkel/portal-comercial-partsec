@@ -3,6 +3,11 @@ import { NextResponse } from "next/server";
 import { renderToStream } from "@react-pdf/renderer";
 
 import { ProposalPDF } from "@/components/proposals/proposal-pdf";
+import {
+  getEffectivePartnerId,
+  getRequiredSession,
+  isAdmin,
+} from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { formatProposalNumber } from "@/lib/utils/proposals";
 
@@ -10,10 +15,15 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getRequiredSession();
+  const partnerId = getEffectivePartnerId(session);
   const { id } = await params;
 
-  const proposal = await prisma.proposal.findUnique({
-    where: { id },
+  const proposal = await prisma.proposal.findFirst({
+    where: {
+      id,
+      ...(isAdmin(session) ? {} : { partnerId: partnerId ?? "" }),
+    },
     include: {
       customer: true,
       partner: true,

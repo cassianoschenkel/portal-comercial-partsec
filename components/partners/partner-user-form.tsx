@@ -20,10 +20,14 @@ type Props = {
   backHref: string;
   initialData?: PartnerUserFormValues;
   isEdit?: boolean;
+  roleOptions?: {
+    value: string;
+    label: string;
+  }[];
   submitLabel: string;
 };
 
-const roleOptions = [
+const defaultRoleOptions = [
   { value: "PARTNER_ADMIN", label: "Administrador do parceiro" },
   { value: "PARTNER_SELLER", label: "Vendedor" },
   { value: "PARTNER_VIEWER", label: "Visualizador" },
@@ -34,6 +38,7 @@ export function PartnerUserForm({
   backHref,
   initialData,
   isEdit = false,
+  roleOptions = defaultRoleOptions,
   submitLabel,
 }: Props) {
   const [state, formAction, isPending] = useActionState(action, {

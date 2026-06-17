@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { ProposalsTable } from "@/components/proposals/proposals-table";
 import {
+  canCreateProposal,
   getEffectivePartnerId,
   getRequiredSession,
   isAdmin,
@@ -11,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 export default async function ProposalsPage() {
   const session = await getRequiredSession();
   const partnerId = getEffectivePartnerId(session);
+  const canCreate = canCreateProposal(session);
 
   const proposals = await prisma.proposal.findMany({
     where: isAdmin(session) ? {} : { partnerId: partnerId ?? "" },
@@ -36,12 +38,14 @@ export default async function ProposalsPage() {
           </p>
         </div>
 
-        <Link
-          href="/dashboard/propostas/nova"
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-        >
-          Nova proposta
-        </Link>
+        {canCreate ? (
+          <Link
+            href="/dashboard/propostas/nova"
+            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            Nova proposta
+          </Link>
+        ) : null}
       </div>
 
       <ProposalsTable proposals={proposals} />

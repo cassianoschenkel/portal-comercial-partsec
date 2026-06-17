@@ -7,6 +7,8 @@ import {
   getEffectivePartnerId,
   getRequiredSession,
   isAdmin,
+  requireCanCreateCustomer,
+  requireCanUpdateCustomer,
   requirePartnerScope,
 } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
@@ -14,6 +16,7 @@ import { customerSchema } from "@/lib/validations/customer";
 
 export async function createCustomer(formData: FormData) {
   const session = await getRequiredSession();
+  requireCanCreateCustomer(session);
 
   const parsed = customerSchema.safeParse({
     companyName: formData.get("companyName"),
@@ -42,6 +45,7 @@ export async function createCustomer(formData: FormData) {
 
 export async function updateCustomer(id: string, formData: FormData) {
   const session = await getRequiredSession();
+  requireCanUpdateCustomer(session);
 
   const parsed = customerSchema.safeParse({
     companyName: formData.get("companyName"),
@@ -81,6 +85,7 @@ export async function updateCustomer(id: string, formData: FormData) {
 
 export async function deleteCustomer(id: string) {
   const session = await getRequiredSession();
+  requireCanUpdateCustomer(session);
 
   const customer = await prisma.customer.findFirst({
     where: {
