@@ -3,13 +3,18 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
-import type { PartnerUserActionState } from "@/lib/actions/partner-users";
-
 type PartnerUserFormValues = {
   name?: string | null;
   email?: string | null;
   role?: string | null;
   isActive?: boolean | null;
+};
+
+type PartnerUserActionState = {
+  success: boolean;
+  error: string | null;
+  message?: string | null;
+  inviteUrl?: string | null;
 };
 
 type Props = {
@@ -44,6 +49,8 @@ export function PartnerUserForm({
   const [state, formAction, isPending] = useActionState(action, {
     success: false,
     error: null,
+    message: null,
+    inviteUrl: null,
   });
 
   return (
@@ -54,6 +61,25 @@ export function PartnerUserForm({
       {state.error ? (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
           {state.error}
+        </div>
+      ) : null}
+
+      {state.success && state.message ? (
+        <div className="space-y-3 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <p className="font-medium">{state.message}</p>
+          {state.inviteUrl ? (
+            <div>
+              <p className="mb-1 text-emerald-700">
+                Link de convite para teste:
+              </p>
+              <input
+                readOnly
+                value={state.inviteUrl}
+                className="w-full rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-900"
+                onFocus={(event) => event.currentTarget.select()}
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -114,21 +140,22 @@ export function PartnerUserForm({
           </select>
         </div>
 
-        <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-slate-700"
-          >
-            {isEdit ? "Nova senha (opcional)" : "Senha provisória"}
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required={!isEdit}
-            className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2"
-          />
-        </div>
+        {isEdit ? (
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-slate-700"
+            >
+              Nova senha (opcional)
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2"
+            />
+          </div>
+        ) : null}
       </div>
 
       <div className="flex items-center gap-3">

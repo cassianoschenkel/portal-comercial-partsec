@@ -11,6 +11,7 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const inviteAccepted = searchParams.get("convite") === "aceito";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -69,6 +70,12 @@ export function LoginForm() {
           placeholder="admin123"
         />
       </div>
+
+      {inviteAccepted ? (
+        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
+          Convite aceito. Entre com sua nova senha.
+        </p>
+      ) : null}
 
       {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
 

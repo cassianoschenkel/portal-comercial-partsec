@@ -47,41 +47,65 @@ enum UnitType {
 }
 
 model User {
-  id                String     @id @default(cuid())
-  name              String
-  email             String     @unique
-  passwordHash      String
-  role              UserRole   @default(PARTNER)
-  partnerId         String?
-  companyName       String?
-  phone             String?
-  commissionPercent Decimal    @default(30) @db.Decimal(5, 2)
-  isActive          Boolean    @default(true)
-  partner           Partner?   @relation(fields: [partnerId], references: [id], onDelete: SetNull)
-  createdProposals  Proposal[] @relation("ProposalCreatedBy")
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
+  id                 String           @id @default(cuid())
+  name               String
+  email              String           @unique
+  passwordHash       String
+  role               UserRole         @default(PARTNER)
+  partnerId          String?
+  companyName        String?
+  phone              String?
+  commissionPercent  Decimal          @default(30) @db.Decimal(5, 2)
+  isActive           Boolean          @default(true)
+  partner            Partner?         @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  createdProposals   Proposal[]       @relation("ProposalCreatedBy")
+  createdInvitations UserInvitation[] @relation("UserInvitationCreatedBy")
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 
   @@index([partnerId])
 }
 
 model Partner {
-  id                       String     @id @default(cuid())
+  id                       String           @id @default(cuid())
   name                     String
   email                    String?
   companyName              String
   tradeName                String?
   document                 String?
   phone                    String?
-  defaultCommissionPercent Decimal    @default(30) @db.Decimal(5, 2)
-  isActive                 Boolean    @default(true)
+  defaultCommissionPercent Decimal          @default(30) @db.Decimal(5, 2)
+  isActive                 Boolean          @default(true)
   users                    User[]
+  invitations              UserInvitation[]
   customers                Customer[]
   proposals                Proposal[]
-  createdAt                DateTime   @default(now())
-  updatedAt                DateTime   @updatedAt
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
 
   @@index([companyName])
+}
+
+model UserInvitation {
+  id          String    @id @default(cuid())
+  email       String
+  name        String
+  role        UserRole
+  partnerId   String
+  partner     Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  isActive    Boolean   @default(true)
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdById String?
+  createdBy   User?     @relation("UserInvitationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([email])
+  @@index([partnerId])
+  @@index([expiresAt])
+  @@index([acceptedAt])
 }
 
 model Customer {

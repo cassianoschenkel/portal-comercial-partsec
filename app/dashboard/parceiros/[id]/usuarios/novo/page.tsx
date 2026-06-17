@@ -41,7 +41,7 @@ export default async function NewPartnerUserPage({
       <PartnerUserForm
         action={createPartnerUser.bind(null, partner.id)}
         backHref={`/dashboard/parceiros/${partner.id}/usuarios`}
-        submitLabel="Salvar usuário"
+        submitLabel="Enviar convite"
       />
     </div>
   );

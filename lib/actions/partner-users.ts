@@ -3,15 +3,19 @@
 import bcrypt from "bcryptjs";
 import { Prisma, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireAdmin } from "@/lib/authz";
+import { createUserInvitation } from "@/lib/invitations";
 import { prisma } from "@/lib/prisma";
 
 export type PartnerUserActionState = {
   success: boolean;
   error: string | null;
+  message?: string | null;
+  inviteUrl?: string | null;
 };
 
 const partnerUserRoles = [
@@ -32,7 +36,6 @@ const createPartnerUserSchema = z.object({
   name: z.string().min(2, "Nome obrigatório."),
   email: z.string().email("E-mail inválido."),
   role: partnerUserRoleSchema,
-  password: z.string().min(6, "Senha deve ter ao menos 6 caracteres."),
   isActive: z.coerce.boolean().optional(),
 });
 
@@ -70,19 +73,34 @@ function actionError(error: string): PartnerUserActionState {
   };
 }
 
+async function getRequestBaseUrl() {
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("host");
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
+
+  if (host) {
+    return `${protocol}://${host}`;
+  }
+
+  return (
+    process.env.NEXTAUTH_URL ??
+    process.env.APP_URL ??
+    "http://localhost:3000"
+  );
+}
+
 export async function createPartnerUser(
   partnerId: string,
   _state: PartnerUserActionState,
   formData: FormData
 ): Promise<PartnerUserActionState> {
-  await requireAdmin();
+  const session = await requireAdmin();
   await ensurePartnerExists(partnerId);
 
   const parsed = createPartnerUserSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
     role: formData.get("role"),
-    password: formData.get("password"),
     isActive: formData.get("isActive") === "on",
   });
 
@@ -100,29 +118,25 @@ export async function createPartnerUser(
     return actionError("Já existe um usuário com este e-mail.");
   }
 
-  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-
-  try {
-    await prisma.user.create({
-      data: {
-        name: parsed.data.name,
-        email,
-        passwordHash,
-        role: parsed.data.role,
-        partnerId,
-        isActive: parsed.data.isActive ?? false,
-      },
-    });
-  } catch (error) {
-    if (isDuplicateEmailError(error)) {
-      return actionError("Já existe um usuário com este e-mail.");
-    }
-
-    throw error;
-  }
+  const invitation = await createUserInvitation({
+    baseUrl: await getRequestBaseUrl(),
+    createdById: session.user.id,
+    email,
+    isActive: parsed.data.isActive ?? false,
+    name: parsed.data.name,
+    partnerId,
+    role: parsed.data.role,
+  });
 
   revalidatePath(`/dashboard/parceiros/${partnerId}/usuarios`);
-  redirect(`/dashboard/parceiros/${partnerId}/usuarios`);
+  return {
+    success: true,
+    error: null,
+    message: invitation.emailSent
+      ? "Convite enviado por e-mail."
+      : "Convite criado. SMTP não configurado; use o link abaixo para teste.",
+    inviteUrl: invitation.emailSent ? null : invitation.inviteUrl,
+  };
 }
 
 export async function updatePartnerUser(

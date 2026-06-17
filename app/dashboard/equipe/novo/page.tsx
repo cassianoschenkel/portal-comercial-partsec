@@ -36,7 +36,7 @@ export default async function NewMyTeamUserPage() {
         action={createMyTeamUser}
         backHref="/dashboard/equipe"
         roleOptions={roleOptions}
-        submitLabel="Salvar usuário"
+        submitLabel="Enviar convite"
       />
     </div>
   );
