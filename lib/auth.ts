@@ -19,52 +19,35 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Senha", type: "password" }
       },
       async authorize(credentials) {
-  const email = credentials?.email?.toLowerCase().trim();
-  const password = credentials?.password;
+        const email = credentials?.email?.toLowerCase().trim();
+        const password = credentials?.password;
 
-  console.log("INPUT:", credentials);
-  console.log("EMAIL NORMALIZADO:", email);
+        if (!email || !password) {
+          return null;
+        }
 
-  if (!email || !password) {
-    console.log("EMAIL OU SENHA AUSENTES");
-    return null;
-  }
+        const user = await prisma.user.findUnique({
+          where: { email },
+        });
 
-  const user = await prisma.user.findUnique({
-    where: { email }
-  });
+        if (!user || !user.isActive || user.deletedAt) {
+          return null;
+        }
 
-  console.log("USER ENCONTRADO:", user?.email);
+        const passwordMatches = await bcrypt.compare(password, user.passwordHash);
 
-  if (!user) {
-    console.log("USUÁRIO NÃO ENCONTRADO");
-    return null;
-  }
+        if (!passwordMatches) {
+          return null;
+        }
 
-  if (!user.isActive || user.deletedAt) {
-    console.log("USUÁRIO INATIVO");
-    return null;
-  }
-
-  const passwordMatches = await bcrypt.compare(password, user.passwordHash);
-
-  console.log("PASSWORD MATCH:", passwordMatches);
-
-  if (!passwordMatches) {
-    console.log("SENHA INVÁLIDA");
-    return null;
-  }
-
-  console.log("LOGIN OK");
-
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    partnerId: user.partnerId
-  };
-}
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          partnerId: user.partnerId,
+        };
+      }
     })
   ],
   callbacks: {

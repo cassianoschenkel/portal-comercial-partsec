@@ -9,6 +9,7 @@ import {
   getRequiredSession,
   isPartnerAdmin,
 } from "@/lib/authz";
+import { resolveCommissionDocumentStoragePath } from "@/lib/commission-documents";
 import { prisma } from "@/lib/prisma";
 
 function contentDispositionFileName(fileName: string) {
@@ -46,9 +47,14 @@ export async function GET(
     notFound();
   }
 
+  const storagePath = resolveCommissionDocumentStoragePath(document.storagePath);
+  if (!storagePath) {
+    notFound();
+  }
+
   let fileBuffer: Buffer;
   try {
-    fileBuffer = await readFile(document.storagePath);
+    fileBuffer = await readFile(storagePath);
   } catch {
     notFound();
   }

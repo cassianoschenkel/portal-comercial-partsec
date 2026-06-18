@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function getRequiredSession() {
   const session = await getServerSession(authOptions);
@@ -10,6 +11,24 @@ export async function getRequiredSession() {
   if (!session?.user?.id || !session.user.role) {
     redirect("/login");
   }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      isActive: true,
+      deletedAt: true,
+      role: true,
+      partnerId: true,
+    },
+  });
+
+  if (!user || !user.isActive || user.deletedAt) {
+    redirect("/login");
+  }
+
+  session.user.role = user.role;
+  session.user.partnerId = user.partnerId;
 
   return session;
 }

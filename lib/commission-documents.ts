@@ -24,6 +24,15 @@ export function getCommissionDocumentsBaseDir() {
   return path.join(process.cwd(), "storage", "commission-documents");
 }
 
+export function getAppBaseUrl() {
+  return (
+    process.env.APP_URL ??
+    process.env.NEXT_PUBLIC_APP_URL ??
+    process.env.NEXTAUTH_URL ??
+    "http://localhost:3000"
+  ).replace(/\/$/, "");
+}
+
 export function getFinanceEmail() {
   return process.env.FINANCE_EMAIL || "financeiro@partsec.com.br";
 }
@@ -36,6 +45,22 @@ export function documentTypeLabel(type: CommissionStatementDocumentType) {
 
 export function documentDownloadPath(documentId: string) {
   return `/api/comissoes/documentos/${documentId}/download`;
+}
+
+export function resolveCommissionDocumentStoragePath(storagePath: string) {
+  const baseDir = getCommissionDocumentsBaseDir();
+  const normalizedPath = path.resolve(storagePath);
+  const relativePath = path.relative(baseDir, normalizedPath);
+
+  if (
+    relativePath.startsWith("..") ||
+    path.isAbsolute(relativePath) ||
+    relativePath === ""
+  ) {
+    return null;
+  }
+
+  return normalizedPath;
 }
 
 export function validatePdfFile(file: File, label: string) {
@@ -74,8 +99,9 @@ export async function saveCommissionDocumentFile({
   const storedFileName = `${type.toLowerCase()}-${randomUUID()}.pdf`;
   const storagePath = path.join(statementDir, storedFileName);
   const normalizedPath = path.normalize(storagePath);
+  const relativePath = path.relative(statementDir, normalizedPath);
 
-  if (!normalizedPath.startsWith(statementDir)) {
+  if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
     throw new Error("Caminho de documento inválido.");
   }
 
@@ -94,8 +120,11 @@ export async function saveCommissionDocumentFile({
 export async function removeCommissionDocumentFile(storagePath: string | null | undefined) {
   if (!storagePath) return;
 
+  const resolvedPath = resolveCommissionDocumentStoragePath(storagePath);
+  if (!resolvedPath) return;
+
   try {
-    await unlink(storagePath);
+    await unlink(resolvedPath);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
       console.error("Falha ao remover documento antigo:", error);

@@ -5,7 +5,9 @@ import { CommissionStatementDocumentType } from "@prisma/client";
 import {
   documentDownloadPath,
   documentTypeLabel,
+  getAppBaseUrl,
   getFinanceEmail,
+  resolveCommissionDocumentStoragePath,
 } from "@/lib/commission-documents";
 import { sendMail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
@@ -20,14 +22,6 @@ function formatCurrency(value: unknown) {
 function formatDate(value: Date | null) {
   if (!value) return "-";
   return new Intl.DateTimeFormat("pt-BR").format(value);
-}
-
-function getAppBaseUrl() {
-  return (
-    process.env.NEXTAUTH_URL ??
-    process.env.APP_URL ??
-    "http://localhost:3000"
-  ).replace(/\/$/, "");
 }
 
 function adminStatementUrl(statementId: string) {
@@ -80,8 +74,18 @@ export async function sendFinanceDocumentsEmail(
     };
   }
 
+  const invoicePath = resolveCommissionDocumentStoragePath(invoice.storagePath);
+  const bankSlipPath = resolveCommissionDocumentStoragePath(bankSlip.storagePath);
+  if (!invoicePath || !bankSlipPath) {
+    return {
+      sent: false,
+      to,
+      error: "Caminho de documento inválido.",
+    };
+  }
+
   try {
-    await Promise.all([readFile(invoice.storagePath), readFile(bankSlip.storagePath)]);
+    await Promise.all([readFile(invoicePath), readFile(bankSlipPath)]);
   } catch {
     return {
       sent: false,

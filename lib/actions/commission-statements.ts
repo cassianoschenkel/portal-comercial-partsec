@@ -20,6 +20,7 @@ import {
   removeCommissionDocumentFile,
   saveCommissionDocumentFile,
   validatePdfFile,
+  getAppBaseUrl,
 } from "@/lib/commission-documents";
 import { sendFinanceDocumentsEmail } from "@/lib/commission-statement-notifications";
 import { sendMail } from "@/lib/mail";
@@ -59,14 +60,6 @@ function formatCurrency(value: unknown) {
 function formatDate(value: Date | null) {
   if (!value) return "-";
   return new Intl.DateTimeFormat("pt-BR").format(value);
-}
-
-function getAppBaseUrl() {
-  return (
-    process.env.NEXTAUTH_URL ??
-    process.env.APP_URL ??
-    "http://localhost:3000"
-  ).replace(/\/$/, "");
 }
 
 function statementUrl(statementId: string) {
