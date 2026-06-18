@@ -48,6 +48,17 @@ function parseEndDate(value?: string) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+function buildExportHref(params: SearchParams) {
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value) query.set(key, value);
+  }
+
+  const queryString = query.toString();
+  return `/api/financeiro/comissoes/lotes/exportar${queryString ? `?${queryString}` : ""}`;
+}
+
 export default async function CommissionBatchesPage({
   searchParams,
 }: {
@@ -56,6 +67,7 @@ export default async function CommissionBatchesPage({
   await requireAdmin();
 
   const params = await searchParams;
+  const exportHref = buildExportHref(params);
   const selectedStatus = Object.values(CommissionBatchStatus).includes(
     params.status as CommissionBatchStatus
   )
@@ -115,12 +127,20 @@ export default async function CommissionBatchesPage({
           </p>
         </div>
 
-        <Link
-          href="/dashboard/financeiro/comissoes/lotes/novo"
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-        >
-          Novo lote
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href={exportHref}
+            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Exportar CSV
+          </Link>
+          <Link
+            href="/dashboard/financeiro/comissoes/lotes/novo"
+            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            Novo lote
+          </Link>
+        </div>
       </div>
 
       <form className="rounded-lg border border-slate-200 bg-white p-4">

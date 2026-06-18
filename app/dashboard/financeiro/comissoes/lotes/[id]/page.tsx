@@ -93,12 +93,26 @@ export default async function CommissionBatchDetailsPage({
           </p>
         </div>
 
-        <Link
-          href="/dashboard/financeiro/comissoes/lotes"
-          className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          Voltar
-        </Link>
+        <div className="flex flex-wrap justify-end gap-3">
+          <Link
+            href={`/api/financeiro/comissoes/lotes/${batch.id}/exportar`}
+            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Exportar itens CSV
+          </Link>
+          <Link
+            href={`/dashboard/financeiro/comissoes/lotes/${batch.id}/imprimir`}
+            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Imprimir resumo
+          </Link>
+          <Link
+            href="/dashboard/financeiro/comissoes/lotes"
+            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Voltar
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

@@ -79,6 +79,17 @@ function sumBy<T>(items: T[], getValue: (item: T) => unknown) {
   return items.reduce((total, item) => total + Number(getValue(item) ?? 0), 0);
 }
 
+function buildExportHref(params: SearchParams) {
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value) query.set(key, value);
+  }
+
+  const queryString = query.toString();
+  return `/api/financeiro/comissoes/exportar${queryString ? `?${queryString}` : ""}`;
+}
+
 export default async function PartnerCommissionsPage({
   searchParams,
 }: {
@@ -87,6 +98,7 @@ export default async function PartnerCommissionsPage({
   await requireAdmin();
 
   const params = await searchParams;
+  const exportHref = buildExportHref(params);
   const hasPeriodFilter = Boolean(params.dateFrom || params.dateTo);
   const dateFrom = parseDate(params.dateFrom) ?? getDefaultDateFrom();
   const dateTo = parseEndDate(params.dateTo) ?? new Date();
@@ -251,6 +263,12 @@ export default async function PartnerCommissionsPage({
         </div>
 
         <div className="flex flex-wrap justify-end gap-3">
+          <Link
+            href={exportHref}
+            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Exportar CSV
+          </Link>
           <Link
             href="/dashboard/financeiro/comissoes/lotes"
             className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
