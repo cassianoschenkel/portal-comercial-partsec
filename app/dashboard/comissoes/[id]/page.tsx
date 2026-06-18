@@ -1,12 +1,21 @@
-import { PartnerCommissionStatementStatus } from "@prisma/client";
+import {
+  CommissionStatementDocumentType,
+  PartnerCommissionStatementStatus,
+} from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { CommissionActionForm } from "@/components/commissions/commission-action-form";
+import { uploadCommissionStatementDocuments } from "@/lib/actions/commission-statements";
 import {
   getEffectivePartnerId,
   getRequiredSession,
   isPartnerAdmin,
 } from "@/lib/authz";
+import {
+  documentDownloadPath,
+  documentTypeLabel,
+} from "@/lib/commission-documents";
 import { prisma } from "@/lib/prisma";
 import { formatProposalNumber } from "@/lib/utils/proposals";
 
@@ -14,6 +23,7 @@ const statusLabels: Record<PartnerCommissionStatementStatus, string> = {
   DRAFT: "Rascunho",
   SENT: "Enviado",
   WAITING_DOCUMENTS: "Aguardando documentos",
+  DOCUMENTS_RECEIVED: "Documentos recebidos",
   CANCELED: "Cancelado",
 };
 
@@ -21,6 +31,7 @@ const statusClasses: Record<PartnerCommissionStatementStatus, string> = {
   DRAFT: "bg-amber-100 text-amber-700",
   SENT: "bg-blue-100 text-blue-700",
   WAITING_DOCUMENTS: "bg-emerald-100 text-emerald-700",
+  DOCUMENTS_RECEIVED: "bg-indigo-100 text-indigo-700",
   CANCELED: "bg-slate-100 text-slate-600",
 };
 
@@ -61,6 +72,7 @@ export default async function MyCommissionStatementDetailsPage({
         in: [
           PartnerCommissionStatementStatus.SENT,
           PartnerCommissionStatementStatus.WAITING_DOCUMENTS,
+          PartnerCommissionStatementStatus.DOCUMENTS_RECEIVED,
         ],
       },
     },
@@ -78,12 +90,29 @@ export default async function MyCommissionStatementDetailsPage({
         },
         orderBy: { releasedAt: "asc" },
       },
+      documents: {
+        include: {
+          uploadedBy: { select: { name: true, email: true } },
+        },
+        orderBy: { type: "asc" },
+      },
     },
   });
 
   if (!statement) {
     notFound();
   }
+
+  const invoice = statement.documents.find(
+    (document) => document.type === CommissionStatementDocumentType.INVOICE
+  );
+  const bankSlip = statement.documents.find(
+    (document) => document.type === CommissionStatementDocumentType.BANK_SLIP
+  );
+  const canUploadDocuments =
+    statement.status === PartnerCommissionStatementStatus.SENT ||
+    statement.status === PartnerCommissionStatementStatus.WAITING_DOCUMENTS ||
+    statement.status === PartnerCommissionStatementStatus.DOCUMENTS_RECEIVED;
 
   return (
     <div className="space-y-6">
@@ -156,13 +185,94 @@ export default async function MyCommissionStatementDetailsPage({
             e-mail financeiro@partsec.com.br.
           </p>
         </div>
-        <button
-          type="button"
-          disabled
-          className="mt-4 rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-400"
-        >
-          Enviar documentos em breve
-        </button>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {[invoice, bankSlip].map((document, index) => {
+            const type =
+              index === 0
+                ? CommissionStatementDocumentType.INVOICE
+                : CommissionStatementDocumentType.BANK_SLIP;
+
+            return (
+              <div key={type} className="rounded-md border border-slate-200 p-4">
+                <p className="text-sm font-semibold text-slate-900">
+                  {documentTypeLabel(type)}
+                </p>
+                {document ? (
+                  <div className="mt-2 space-y-1 text-sm text-slate-600">
+                    <p>{document.originalFileName}</p>
+                    <p>Enviado em {formatDate(document.uploadedAt)}</p>
+                    <p>
+                      Por {document.uploadedBy.name || document.uploadedBy.email}
+                    </p>
+                    <Link
+                      href={documentDownloadPath(document.id)}
+                      className="inline-flex rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      Baixar
+                    </Link>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm text-slate-500">Pendente</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {canUploadDocuments ? (
+          <div className="mt-5 rounded-md border border-slate-200 p-4">
+            <h3 className="text-sm font-semibold text-slate-950">
+              Enviar ou substituir documentos
+            </h3>
+            <CommissionActionForm
+              action={uploadCommissionStatementDocuments.bind(null, statement.id)}
+              submitLabel="Enviar documentos"
+              pendingLabel="Enviando..."
+              variant="primary"
+            >
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div>
+                  <label htmlFor="invoice" className="block text-sm font-medium text-slate-700">
+                    Nota fiscal PDF
+                  </label>
+                  <input
+                    id="invoice"
+                    name="invoice"
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    required
+                    className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="bankSlip" className="block text-sm font-medium text-slate-700">
+                    Boleto PDF
+                  </label>
+                  <input
+                    id="bankSlip"
+                    name="bankSlip"
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    required
+                    className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label htmlFor="documentsNotes" className="block text-sm font-medium text-slate-700">
+                    Observação
+                  </label>
+                  <textarea
+                    id="documentsNotes"
+                    name="documentsNotes"
+                    rows={3}
+                    className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+            </CommissionActionForm>
+          </div>
+        ) : null}
       </div>
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">

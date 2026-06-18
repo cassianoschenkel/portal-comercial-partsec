@@ -52,7 +52,12 @@ export function CommissionActionForm({
   }
 
   return (
-    <form action={formAction} className="space-y-2" onSubmit={handleSubmit}>
+    <form
+      action={formAction}
+      className="space-y-2"
+      encType="multipart/form-data"
+      onSubmit={handleSubmit}
+    >
       {children}
 
       <button

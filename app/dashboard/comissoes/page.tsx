@@ -13,6 +13,7 @@ const statusLabels: Record<PartnerCommissionStatementStatus, string> = {
   DRAFT: "Rascunho",
   SENT: "Enviado",
   WAITING_DOCUMENTS: "Aguardando documentos",
+  DOCUMENTS_RECEIVED: "Documentos recebidos",
   CANCELED: "Cancelado",
 };
 
@@ -20,6 +21,7 @@ const statusClasses: Record<PartnerCommissionStatementStatus, string> = {
   DRAFT: "bg-amber-100 text-amber-700",
   SENT: "bg-blue-100 text-blue-700",
   WAITING_DOCUMENTS: "bg-emerald-100 text-emerald-700",
+  DOCUMENTS_RECEIVED: "bg-indigo-100 text-indigo-700",
   CANCELED: "bg-slate-100 text-slate-600",
 };
 
@@ -54,6 +56,7 @@ export default async function MyCommissionStatementsPage() {
         in: [
           PartnerCommissionStatementStatus.SENT,
           PartnerCommissionStatementStatus.WAITING_DOCUMENTS,
+          PartnerCommissionStatementStatus.DOCUMENTS_RECEIVED,
         ],
       },
     },
@@ -81,6 +84,7 @@ export default async function MyCommissionStatementsPage() {
                 "Status",
                 "Comissões",
                 "Total",
+                "Documentos",
                 "Enviado em",
                 "Ações",
               ].map((header) => (
@@ -114,6 +118,9 @@ export default async function MyCommissionStatementsPage() {
                   {formatCurrency(statement.totalAmount)}
                 </td>
                 <td className="px-4 py-3 text-sm text-slate-700">
+                  {statement.documentsReceivedAt ? "Enviado" : "Pendente"}
+                </td>
+                <td className="px-4 py-3 text-sm text-slate-700">
                   {formatDate(statement.sentAt)}
                 </td>
                 <td className="px-4 py-3 text-sm">
@@ -129,7 +136,7 @@ export default async function MyCommissionStatementsPage() {
 
             {statements.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm text-slate-500">
+                <td colSpan={8} className="px-4 py-10 text-center text-sm text-slate-500">
                   Nenhum relatório de comissões disponível.
                 </td>
               </tr>

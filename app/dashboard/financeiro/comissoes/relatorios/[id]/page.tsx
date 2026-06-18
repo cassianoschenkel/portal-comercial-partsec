@@ -1,13 +1,21 @@
-import { PartnerCommissionStatementStatus } from "@prisma/client";
+import {
+  CommissionStatementDocumentType,
+  PartnerCommissionStatementStatus,
+} from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CommissionActionForm } from "@/components/commissions/commission-action-form";
+import { ResendFinanceEmailButton } from "@/components/financeiro/resend-finance-email-button";
 import {
   cancelCommissionStatement,
   sendCommissionStatement,
 } from "@/lib/actions/commission-statements";
 import { requireAdmin } from "@/lib/authz";
+import {
+  documentDownloadPath,
+  documentTypeLabel,
+} from "@/lib/commission-documents";
 import { prisma } from "@/lib/prisma";
 import {
   formatProposalNumber,
@@ -19,6 +27,7 @@ const statusLabels: Record<PartnerCommissionStatementStatus, string> = {
   DRAFT: "Rascunho",
   SENT: "Enviado",
   WAITING_DOCUMENTS: "Aguardando documentos",
+  DOCUMENTS_RECEIVED: "Documentos recebidos",
   CANCELED: "Cancelado",
 };
 
@@ -26,6 +35,7 @@ const statusClasses: Record<PartnerCommissionStatementStatus, string> = {
   DRAFT: "bg-amber-100 text-amber-700",
   SENT: "bg-blue-100 text-blue-700",
   WAITING_DOCUMENTS: "bg-emerald-100 text-emerald-700",
+  DOCUMENTS_RECEIVED: "bg-indigo-100 text-indigo-700",
   CANCELED: "bg-slate-100 text-slate-600",
 };
 
@@ -56,6 +66,13 @@ export default async function CommissionStatementDetailsPage({
       createdBy: { select: { name: true, email: true } },
       sentBy: { select: { name: true, email: true } },
       canceledBy: { select: { name: true, email: true } },
+      documentsReceivedBy: { select: { name: true, email: true } },
+      documents: {
+        include: {
+          uploadedBy: { select: { name: true, email: true } },
+        },
+        orderBy: { type: "asc" },
+      },
       commissions: {
         include: {
           proposal: {
@@ -77,6 +94,14 @@ export default async function CommissionStatementDetailsPage({
   if (!statement) {
     notFound();
   }
+
+  const invoice = statement.documents.find(
+    (document) => document.type === CommissionStatementDocumentType.INVOICE
+  );
+  const bankSlip = statement.documents.find(
+    (document) => document.type === CommissionStatementDocumentType.BANK_SLIP
+  );
+  const hasDocuments = Boolean(invoice && bankSlip && statement.documentsReceivedAt);
 
   return (
     <div className="space-y-6">
@@ -173,7 +198,97 @@ export default async function CommissionStatementDetailsPage({
               {statement.notes || "-"}
             </dd>
           </div>
+          <div>
+            <dt className="text-sm font-medium text-slate-500">
+              Documentos recebidos em
+            </dt>
+            <dd className="mt-1 text-sm text-slate-900">
+              {formatDate(statement.documentsReceivedAt)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-sm font-medium text-slate-500">
+              Documentos recebidos por
+            </dt>
+            <dd className="mt-1 text-sm text-slate-900">
+              {statement.documentsReceivedBy
+                ? statement.documentsReceivedBy.name ||
+                  statement.documentsReceivedBy.email
+                : "-"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-sm font-medium text-slate-500">
+              E-mail financeiro
+            </dt>
+            <dd className="mt-1 text-sm text-slate-900">
+              {statement.financeEmailSentAt
+                ? `${formatDate(statement.financeEmailSentAt)} · ${
+                    statement.financeEmailSentTo || "-"
+                  }`
+                : "Pendente"}
+            </dd>
+          </div>
         </dl>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">
+              Documentos enviados pelo parceiro
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Nota fiscal e boleto ficam em storage privado e são baixados por
+              rota autenticada.
+            </p>
+          </div>
+
+          {hasDocuments ? (
+            <ResendFinanceEmailButton statementId={statement.id} />
+          ) : null}
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {[invoice, bankSlip].map((document, index) => {
+            const type =
+              index === 0
+                ? CommissionStatementDocumentType.INVOICE
+                : CommissionStatementDocumentType.BANK_SLIP;
+
+            return (
+              <div key={type} className="rounded-md border border-slate-200 p-4">
+                <p className="text-sm font-semibold text-slate-900">
+                  {documentTypeLabel(type)}
+                </p>
+                {document ? (
+                  <div className="mt-2 space-y-1 text-sm text-slate-600">
+                    <p>{document.originalFileName}</p>
+                    <p>{Math.ceil(document.sizeBytes / 1024)} KB</p>
+                    <p>Enviado em {formatDate(document.uploadedAt)}</p>
+                    <p>
+                      Por {document.uploadedBy.name || document.uploadedBy.email}
+                    </p>
+                    <Link
+                      href={documentDownloadPath(document.id)}
+                      className="inline-flex rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      Baixar
+                    </Link>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm text-slate-500">Pendente</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {statement.documentsNotes ? (
+          <p className="mt-4 text-sm text-slate-600">
+            Observação do parceiro: {statement.documentsNotes}
+          </p>
+        ) : null}
       </div>
 
       {statement.status === PartnerCommissionStatementStatus.DRAFT ? (

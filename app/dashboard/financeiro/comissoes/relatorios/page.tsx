@@ -17,6 +17,7 @@ const statusLabels: Record<PartnerCommissionStatementStatus, string> = {
   DRAFT: "Rascunho",
   SENT: "Enviado",
   WAITING_DOCUMENTS: "Aguardando documentos",
+  DOCUMENTS_RECEIVED: "Documentos recebidos",
   CANCELED: "Cancelado",
 };
 
@@ -24,6 +25,7 @@ const statusClasses: Record<PartnerCommissionStatementStatus, string> = {
   DRAFT: "bg-amber-100 text-amber-700",
   SENT: "bg-blue-100 text-blue-700",
   WAITING_DOCUMENTS: "bg-emerald-100 text-emerald-700",
+  DOCUMENTS_RECEIVED: "bg-indigo-100 text-indigo-700",
   CANCELED: "bg-slate-100 text-slate-600",
 };
 
@@ -254,6 +256,8 @@ export default async function CommissionStatementsPage({
                 "Status",
                 "Comissões",
                 "Total",
+                "Documentos",
+                "E-mail financeiro",
                 "Criado em",
                 "Enviado em",
                 "Ações",
@@ -291,6 +295,12 @@ export default async function CommissionStatementsPage({
                   {formatCurrency(statement.totalAmount)}
                 </td>
                 <td className="px-4 py-3 text-sm text-slate-700">
+                  {statement.documentsReceivedAt ? "Recebido" : "Pendente"}
+                </td>
+                <td className="px-4 py-3 text-sm text-slate-700">
+                  {statement.financeEmailSentAt ? "Enviado" : "Pendente"}
+                </td>
+                <td className="px-4 py-3 text-sm text-slate-700">
                   {formatDate(statement.createdAt)}
                 </td>
                 <td className="px-4 py-3 text-sm text-slate-700">
@@ -309,7 +319,7 @@ export default async function CommissionStatementsPage({
 
             {statements.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-sm text-slate-500">
+                <td colSpan={11} className="px-4 py-10 text-center text-sm text-slate-500">
                   Nenhum relatório encontrado.
                 </td>
               </tr>

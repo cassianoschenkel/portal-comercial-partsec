@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  CommissionStatementDocumentType,
   CommissionStatus,
   PartnerCommissionStatementStatus,
   UserRole,
@@ -9,7 +10,18 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { type CommissionActionState } from "@/lib/actions/commissions";
-import { requireAdmin } from "@/lib/authz";
+import {
+  getEffectivePartnerId,
+  getRequiredSession,
+  isPartnerAdmin,
+  requireAdmin,
+} from "@/lib/authz";
+import {
+  removeCommissionDocumentFile,
+  saveCommissionDocumentFile,
+  validatePdfFile,
+} from "@/lib/commission-documents";
+import { sendFinanceDocumentsEmail } from "@/lib/commission-statement-notifications";
 import { sendMail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
 
@@ -361,4 +373,223 @@ export async function cancelCommissionStatement(
   revalidatePath("/dashboard/financeiro/comissoes/relatorios");
   revalidatePath(`/dashboard/financeiro/comissoes/relatorios/${statementId}`);
   return actionSuccess("Relatório cancelado. Comissões voltaram a ficar disponíveis.");
+}
+
+export async function uploadCommissionStatementDocuments(
+  statementId: string,
+  _state: CommissionActionState,
+  formData: FormData
+): Promise<CommissionActionState> {
+  const session = await getRequiredSession();
+
+  if (!isPartnerAdmin(session)) {
+    return actionError("Você não tem permissão para enviar documentos.");
+  }
+
+  const partnerId = getEffectivePartnerId(session);
+  if (!partnerId) {
+    return actionError("Usuário parceiro sem vínculo de parceiro.");
+  }
+
+  const statement = await prisma.partnerCommissionStatement.findFirst({
+    where: { id: statementId, partnerId },
+    include: {
+      documents: {
+        select: {
+          id: true,
+          type: true,
+          storagePath: true,
+        },
+      },
+    },
+  });
+
+  if (!statement) {
+    return actionError("Relatório não encontrado.");
+  }
+
+  if (statement.status === PartnerCommissionStatementStatus.CANCELED) {
+    return actionError("Relatório cancelado não aceita envio de documentos.");
+  }
+
+  if (statement.status === PartnerCommissionStatementStatus.DRAFT) {
+    return actionError("Relatório em rascunho ainda não aceita envio de documentos.");
+  }
+
+  if (
+    statement.status !== PartnerCommissionStatementStatus.SENT &&
+    statement.status !== PartnerCommissionStatementStatus.WAITING_DOCUMENTS &&
+    statement.status !== PartnerCommissionStatementStatus.DOCUMENTS_RECEIVED
+  ) {
+    return actionError("Status do relatório não permite envio de documentos.");
+  }
+
+  const invoice = formData.get("invoice");
+  const bankSlip = formData.get("bankSlip");
+
+  if (!(invoice instanceof File)) {
+    return actionError("Envie a nota fiscal em PDF.");
+  }
+
+  if (!(bankSlip instanceof File)) {
+    return actionError("Envie o boleto em PDF.");
+  }
+
+  const invoiceError = validatePdfFile(invoice, "a nota fiscal");
+  if (invoiceError) return actionError(invoiceError);
+
+  const bankSlipError = validatePdfFile(bankSlip, "o boleto");
+  if (bankSlipError) return actionError(bankSlipError);
+
+  let savedInvoice;
+  let savedBankSlip;
+
+  try {
+    savedInvoice = await saveCommissionDocumentFile({
+      file: invoice,
+      statementId: statement.id,
+      type: CommissionStatementDocumentType.INVOICE,
+    });
+    savedBankSlip = await saveCommissionDocumentFile({
+      file: bankSlip,
+      statementId: statement.id,
+      type: CommissionStatementDocumentType.BANK_SLIP,
+    });
+  } catch (error) {
+    console.error("Falha ao salvar documentos de comissão:", error);
+    return actionError("Não foi possível salvar os documentos. Tente novamente.");
+  }
+
+  const previousInvoice = statement.documents.find(
+    (document) => document.type === CommissionStatementDocumentType.INVOICE
+  );
+  const previousBankSlip = statement.documents.find(
+    (document) => document.type === CommissionStatementDocumentType.BANK_SLIP
+  );
+
+  await prisma.$transaction(async (tx) => {
+    await tx.partnerCommissionStatementDocument.upsert({
+      where: {
+        statementId_type: {
+          statementId: statement.id,
+          type: CommissionStatementDocumentType.INVOICE,
+        },
+      },
+      create: {
+        statementId: statement.id,
+        type: CommissionStatementDocumentType.INVOICE,
+        ...savedInvoice,
+        uploadedById: session.user.id,
+      },
+      update: {
+        ...savedInvoice,
+        uploadedById: session.user.id,
+        uploadedAt: new Date(),
+      },
+    });
+
+    await tx.partnerCommissionStatementDocument.upsert({
+      where: {
+        statementId_type: {
+          statementId: statement.id,
+          type: CommissionStatementDocumentType.BANK_SLIP,
+        },
+      },
+      create: {
+        statementId: statement.id,
+        type: CommissionStatementDocumentType.BANK_SLIP,
+        ...savedBankSlip,
+        uploadedById: session.user.id,
+      },
+      update: {
+        ...savedBankSlip,
+        uploadedById: session.user.id,
+        uploadedAt: new Date(),
+      },
+    });
+
+    await tx.partnerCommissionStatement.update({
+      where: { id: statement.id },
+      data: {
+        status: PartnerCommissionStatementStatus.DOCUMENTS_RECEIVED,
+        documentsReceivedAt: new Date(),
+        documentsReceivedById: session.user.id,
+        documentsNotes: String(formData.get("documentsNotes") || "").trim() || null,
+      },
+    });
+  });
+
+  await Promise.all([
+    removeCommissionDocumentFile(previousInvoice?.storagePath),
+    removeCommissionDocumentFile(previousBankSlip?.storagePath),
+  ]);
+
+  const emailResult = await sendFinanceDocumentsEmail(statement.id);
+
+  if (emailResult.sent) {
+    await prisma.partnerCommissionStatement.update({
+      where: { id: statement.id },
+      data: {
+        financeEmailSentAt: new Date(),
+        financeEmailSentTo: emailResult.to,
+      },
+    });
+  }
+
+  revalidatePath("/dashboard/comissoes");
+  revalidatePath(`/dashboard/comissoes/${statement.id}`);
+  revalidatePath("/dashboard/financeiro/comissoes/relatorios");
+  revalidatePath(`/dashboard/financeiro/comissoes/relatorios/${statement.id}`);
+
+  if (!emailResult.sent) {
+    return actionSuccess(
+      "Documentos recebidos, mas houve falha ao enviar o e-mail ao financeiro. Tente reenviar a notificação pelo painel administrativo."
+    );
+  }
+
+  return actionSuccess("Documentos recebidos e e-mail enviado ao financeiro.");
+}
+
+export async function resendCommissionDocumentsToFinance(
+  statementId: string,
+  _state: CommissionActionState,
+  _formData: FormData
+): Promise<CommissionActionState> {
+  await requireAdmin();
+
+  const statement = await prisma.partnerCommissionStatement.findUnique({
+    where: { id: statementId },
+    include: {
+      documents: { select: { id: true } },
+    },
+  });
+
+  if (!statement) {
+    return actionError("Relatório não encontrado.");
+  }
+
+  if (statement.status === PartnerCommissionStatementStatus.CANCELED) {
+    return actionError("Relatório cancelado não permite reenvio ao financeiro.");
+  }
+
+  if (statement.documents.length < 2 || !statement.documentsReceivedAt) {
+    return actionError("Relatório ainda não possui nota fiscal e boleto recebidos.");
+  }
+
+  const emailResult = await sendFinanceDocumentsEmail(statement.id);
+
+  if (!emailResult.sent) {
+    return actionError("Falha ao enviar e-mail ao financeiro. Tente novamente.");
+  }
+
+  await prisma.partnerCommissionStatement.update({
+    where: { id: statement.id },
+    data: {
+      financeEmailSentAt: new Date(),
+      financeEmailSentTo: emailResult.to,
+    },
+  });
+
+  revalidatePath(`/dashboard/financeiro/comissoes/relatorios/${statement.id}`);
+  return actionSuccess("E-mail reenviado ao financeiro.");
 }
