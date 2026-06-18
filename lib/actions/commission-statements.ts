@@ -80,6 +80,7 @@ function buildStatementEmail({
 }) {
   const total = formatCurrency(totalAmount);
   const period = `${formatDate(periodStart)} a ${formatDate(periodEnd)}`;
+  const invoiceInstruction = `Emita a nota fiscal e o boleto no valor total de ${total} e, na descrição da nota fiscal, informe: "Comissionamento por representação comercial".`;
 
   return {
     subject: "Relatório mensal de comissões liberadas - Partsec",
@@ -91,7 +92,7 @@ function buildStatementEmail({
       `Quantidade de comissões: ${commissionCount}.`,
       `Valor total liberado: ${total}.`,
       "",
-      "Para prosseguirmos com o pagamento, envie pelo portal a nota fiscal e o boleto correspondente ao valor total liberado.",
+      invoiceInstruction,
       "O pagamento será realizado após conferência dos documentos pelo financeiro da Partsec.",
       "",
       `Acesse o relatório: ${url}`,
@@ -106,7 +107,7 @@ function buildStatementEmail({
       `<p>Olá, <strong>${partnerName}</strong>.</p>`,
       `<p>As comissões liberadas para faturamento referentes ao mês <strong>${referenceMonth}</strong> estão disponíveis no Portal Comercial Partsec.</p>`,
       `<p><strong>Período:</strong> ${period}<br/><strong>Comissões:</strong> ${commissionCount}<br/><strong>Total liberado:</strong> ${total}</p>`,
-      "<p>Para prosseguirmos com o pagamento, envie pelo portal a nota fiscal e o boleto correspondente ao valor total liberado.</p>",
+      `<p>${invoiceInstruction}</p>`,
       "<p>O pagamento será realizado após conferência dos documentos pelo financeiro da Partsec.</p>",
       `<p style="margin:24px 0"><a href="${url}" style="background:#0f172a;color:#ffffff;padding:12px 18px;border-radius:6px;text-decoration:none;font-weight:700">Ver relatório</a></p>`,
       "<p>Se o botão não funcionar, copie e cole este link no navegador:</p>",

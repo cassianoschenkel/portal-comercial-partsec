@@ -142,7 +142,9 @@ export default async function MyCommissionStatementDetailsPage({
         <div className="mt-3 grid gap-3 text-sm text-slate-700">
           <p>
             Emita a nota fiscal e o boleto no valor total de{" "}
-            <strong>{formatCurrency(statement.totalAmount)}</strong>.
+            <strong>{formatCurrency(statement.totalAmount)}</strong> e, na
+            descrição da nota fiscal, informe:{" "}
+            <strong>Comissionamento por representação comercial</strong>.
           </p>
           <p>
             O pagamento será processado após recebimento e conferência dos
