@@ -22,7 +22,10 @@ export async function Sidebar() {
 
   const adminItems: NavItem[] =
     role === UserRole.ADMIN
-      ? [{ href: "/dashboard/parceiros", label: "Parceiros" }]
+      ? [
+          { href: "/dashboard/parceiros", label: "Parceiros" },
+          { href: "/dashboard/financeiro", label: "Financeiro" },
+        ]
       : [];
 
   const teamItems: NavItem[] =
