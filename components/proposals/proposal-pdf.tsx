@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
   page: {
     paddingTop: 32,
     paddingHorizontal: 32,
-    paddingBottom: 88,
+    paddingBottom: 70,
     fontSize: 10,
     color: "#0f172a",
     fontFamily: "Helvetica",
@@ -39,8 +39,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#0f172a",
   },
   header: {
-    marginBottom: 16,
-    paddingBottom: 14,
+    marginBottom: 12,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#e2e8f0",
   },
@@ -53,44 +53,44 @@ const styles = StyleSheet.create({
     width: "58%",
   },
   logo: {
-    width: 260,
-    height: 78,
+    width: 230,
+    height: 66,
     objectFit: "contain",
-    marginBottom: 10,
+    marginBottom: 6,
   },
   headerMeta: {
     width: "42%",
     borderWidth: 1,
     borderColor: "#e2e8f0",
     backgroundColor: "#f8fafc",
-    padding: 12,
+    padding: 10,
     alignSelf: "flex-start",
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     marginBottom: 4,
     color: "#0f172a",
   },
   proposalCode: {
-    fontSize: 18,
+    fontSize: 17,
     color: "#1d4ed8",
   },
   metaTitle: {
-    fontSize: 16,
-    marginBottom: 8,
+    fontSize: 15,
+    marginBottom: 6,
     color: "#0f172a",
   },
   metaLine: {
-    fontSize: 9,
+    fontSize: 8.5,
     color: "#475569",
-    marginBottom: 4,
+    marginBottom: 3,
   },
   section: {
-    marginBottom: 14,
+    marginBottom: 10,
   },
   pdfSection: {
-    marginBottom: 14,
-    paddingTop: 2,
+    marginBottom: 10,
+    paddingTop: 0,
   },
   scopeTableSection: {
     breakInside: "avoid",
@@ -100,19 +100,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e2e8f0",
     borderRadius: 10,
-    padding: 14,
+    padding: 11,
     backgroundColor: "#ffffff",
   },
   sectionSoftCard: {
     borderWidth: 1,
     borderColor: "#dbeafe",
     borderRadius: 10,
-    padding: 14,
+    padding: 11,
     backgroundColor: "#f8fafc",
   },
   sectionTitle: {
     fontSize: 10,
-    marginBottom: 10,
+    marginBottom: 7,
     color: "#1e40af",
     textTransform: "uppercase",
     letterSpacing: 1,
@@ -126,16 +126,16 @@ const styles = StyleSheet.create({
     width: "48%",
   },
   fieldGroup: {
-    marginBottom: 8,
+    marginBottom: 5,
   },
   label: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: "#64748b",
     marginBottom: 2,
     textTransform: "uppercase",
   },
   value: {
-    fontSize: 10,
+    fontSize: 9.5,
     color: "#0f172a",
   },
   valueStrong: {
@@ -143,16 +143,16 @@ const styles = StyleSheet.create({
     color: "#0f172a",
   },
   bodyText: {
-    fontSize: 10,
-    lineHeight: 1.45,
+    fontSize: 9.2,
+    lineHeight: 1.3,
     color: "#334155",
   },
   compactScopeCard: {
-    padding: 12,
+    padding: 10,
   },
   compactScopeText: {
-    fontSize: 9.5,
-    lineHeight: 1.3,
+    fontSize: 9,
+    lineHeight: 1.2,
     color: "#334155",
   },
   configGrid: {
@@ -299,33 +299,33 @@ const styles = StyleSheet.create({
   },
   colModule: {
     width: "30%",
-    padding: 8,
+    padding: 7,
     fontSize: 8.5,
   },
   colQuantity: {
     width: "12%",
-    padding: 8,
+    padding: 7,
     fontSize: 8.5,
   },
   colUnit: {
     width: "14%",
-    padding: 8,
+    padding: 7,
     fontSize: 8.5,
   },
   colRange: {
     width: "10%",
-    padding: 8,
+    padding: 7,
     fontSize: 8.5,
   },
   colMonthly: {
     width: "17%",
-    padding: 8,
+    padding: 7,
     fontSize: 8.5,
     textAlign: "right",
   },
   colSetup: {
     width: "17%",
-    padding: 8,
+    padding: 7,
     fontSize: 8.5,
     textAlign: "right",
   },
@@ -366,8 +366,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 32,
     right: 32,
-    bottom: 18,
-    paddingTop: 8,
+    bottom: 14,
+    paddingTop: 6,
     borderTopWidth: 1,
     borderTopColor: "#e2e8f0",
     flexDirection: "row",
@@ -470,7 +470,7 @@ function formatCurrency(value: unknown) {
 }
 
 const DEFAULT_PDF_SCOPE_DESCRIPTION =
-  "A presente proposta contempla a implantação e operação do Partsec One para centralizar o monitoramento, a visibilidade operacional e o suporte gerenciado de ativos críticos, endpoints e serviços em nuvem.";
+  "A presente proposta contempla a implantação e operação do Partsec One para centralizar monitoramento, visibilidade operacional e suporte gerenciado de ativos críticos, endpoints e serviços em nuvem.";
 
 function getPdfScopeDescription(scopeDescription?: string | null) {
   const normalized = scopeDescription?.replace(/\s+/g, " ").trim();
@@ -744,17 +744,13 @@ O prazo para a finalização da implementação é de até 30 dias corridos a pa
         <View style={styles.sectionSoftCard}>
           <Text style={styles.sectionTitle}>Sobre a solução</Text>
           <Text style={styles.bodyText}>
-            O Partsec One é a solução da Partsec para centralização de
-            monitoramento, visibilidade operacional e consolidação de
-            informações do ambiente de TI e segurança.
-            {"\n\n"}
-            A plataforma permite reunir ativos, eventos e indicadores em uma
-            visão única, apoiando a operação com mais agilidade, padronização e
-            proatividade.
+            O Partsec One centraliza monitoramento, visibilidade operacional e
+            informações de TI e segurança em uma visão única, apoiando a
+            operação com mais agilidade, padronização e produtividade.
           </Text>
         </View>
 
-        <View style={[styles.section, { marginTop: 12 }]}>
+        <View style={[styles.section, { marginTop: 8 }]}>
           <View style={[styles.sectionSoftCard, styles.compactScopeCard]}>
             <Text style={styles.sectionTitle}>Escopo desta proposta</Text>
             <Text style={styles.compactScopeText}>{scopeDescription}</Text>
