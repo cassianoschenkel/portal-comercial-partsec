@@ -26,6 +26,7 @@ export async function Sidebar() {
           { href: "/dashboard/parceiros", label: "Parceiros" },
           { href: "/dashboard/financeiro", label: "Financeiro" },
           { href: "/dashboard/financeiro/comissoes", label: "Comissões" },
+          { href: "/dashboard/financeiro/comissoes/lotes", label: "Lotes" },
         ]
       : [];
 

@@ -87,6 +87,7 @@ export async function markCommissionPaid(
     select: {
       id: true,
       status: true,
+      batchId: true,
     },
   });
 
@@ -100,6 +101,10 @@ export async function markCommissionPaid(
 
   if (commission.status === CommissionStatus.PAID) {
     return actionError("Esta comissão já está paga.");
+  }
+
+  if (commission.batchId) {
+    return actionError("Esta comissão está vinculada a um lote. Use o lote para pagamento.");
   }
 
   await prisma.partnerCommission.update({
@@ -130,6 +135,7 @@ export async function undoCommissionPayment(
     select: {
       id: true,
       status: true,
+      batchId: true,
     },
   });
 
@@ -139,6 +145,10 @@ export async function undoCommissionPayment(
 
   if (commission.status !== CommissionStatus.PAID) {
     return actionError("Apenas comissões pagas podem voltar para pendente.");
+  }
+
+  if (commission.batchId) {
+    return actionError("Esta comissão está vinculada a um lote. Use o lote para desfazer o pagamento.");
   }
 
   await prisma.partnerCommission.update({
@@ -167,6 +177,7 @@ export async function cancelPartnerCommission(
     select: {
       id: true,
       status: true,
+      batchId: true,
     },
   });
 
@@ -180,6 +191,10 @@ export async function cancelPartnerCommission(
 
   if (commission.status === CommissionStatus.CANCELED) {
     return actionError("Esta comissão já está cancelada.");
+  }
+
+  if (commission.batchId) {
+    return actionError("Esta comissão está vinculada a um lote. Cancele o lote antes de cancelar a comissão.");
   }
 
   await prisma.partnerCommission.update({
