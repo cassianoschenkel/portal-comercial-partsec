@@ -29,12 +29,14 @@ export default async function InvitationPage({
       role: true,
       expiresAt: true,
       acceptedAt: true,
+      canceledAt: true,
     },
   });
 
   const isInvalid =
     !invitation ||
     Boolean(invitation.acceptedAt) ||
+    Boolean(invitation.canceledAt) ||
     invitation.expiresAt <= new Date();
 
   return (

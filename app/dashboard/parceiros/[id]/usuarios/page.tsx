@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { InvitationsTable } from "@/components/partners/invitations-table";
 import { PartnerUsersTable } from "@/components/partners/partner-users-table";
+import {
+  cancelPartnerInvitation,
+  resendPartnerInvitation,
+} from "@/lib/actions/partner-users";
 import { requireAdmin } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
@@ -40,6 +45,27 @@ export default async function PartnerUsersPage({
     },
   });
 
+  const invitations = await prisma.userInvitation.findMany({
+    where: { partnerId: partner.id },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      expiresAt: true,
+      acceptedAt: true,
+      canceledAt: true,
+      createdAt: true,
+      createdBy: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -68,7 +94,27 @@ export default async function PartnerUsersPage({
         </div>
       </div>
 
-      <PartnerUsersTable partnerId={partner.id} users={users} />
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold text-slate-950">
+          Usuários ativos
+        </h2>
+        <PartnerUsersTable partnerId={partner.id} users={users} />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold text-slate-950">
+          Convites
+        </h2>
+        <InvitationsTable
+          invitations={invitations}
+          getCancelAction={(invitationId) =>
+            cancelPartnerInvitation.bind(null, partner.id, invitationId)
+          }
+          getResendAction={(invitationId) =>
+            resendPartnerInvitation.bind(null, partner.id, invitationId)
+          }
+        />
+      </section>
     </div>
   );
 }

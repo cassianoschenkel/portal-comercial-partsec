@@ -11,7 +11,10 @@ import {
   getRequiredSession,
   requireCanManagePartnerTeam,
 } from "@/lib/authz";
-import { createUserInvitation } from "@/lib/invitations";
+import {
+  createUserInvitation,
+  refreshInvitationToken,
+} from "@/lib/invitations";
 import { prisma } from "@/lib/prisma";
 
 export type MyTeamActionState = {
@@ -208,4 +211,98 @@ export async function updateMyTeamUser(
   revalidatePath("/dashboard/equipe");
   revalidatePath(`/dashboard/equipe/${userId}/editar`);
   redirect("/dashboard/equipe");
+}
+
+export async function cancelMyTeamInvitation(
+  invitationId: string,
+  _state: MyTeamActionState,
+  _formData: FormData
+): Promise<MyTeamActionState> {
+  const { currentUserId, partnerId } = await requireTeamManagerScope();
+
+  const invitation = await prisma.userInvitation.findFirst({
+    where: {
+      id: invitationId,
+      partnerId,
+    },
+    select: {
+      id: true,
+      acceptedAt: true,
+      canceledAt: true,
+    },
+  });
+
+  if (!invitation) {
+    notFound();
+  }
+
+  if (invitation.acceptedAt) {
+    return actionError("Convite aceito não pode ser cancelado.");
+  }
+
+  if (invitation.canceledAt) {
+    return actionError("Convite já está cancelado.");
+  }
+
+  await prisma.userInvitation.update({
+    where: { id: invitation.id },
+    data: {
+      canceledAt: new Date(),
+      canceledById: currentUserId,
+    },
+  });
+
+  revalidatePath("/dashboard/equipe");
+  return {
+    success: true,
+    error: null,
+    message: "Convite cancelado.",
+  };
+}
+
+export async function resendMyTeamInvitation(
+  invitationId: string,
+  _state: MyTeamActionState,
+  _formData: FormData
+): Promise<MyTeamActionState> {
+  const { partnerId } = await requireTeamManagerScope();
+
+  const invitation = await prisma.userInvitation.findFirst({
+    where: {
+      id: invitationId,
+      partnerId,
+    },
+    select: {
+      id: true,
+      acceptedAt: true,
+      canceledAt: true,
+    },
+  });
+
+  if (!invitation) {
+    notFound();
+  }
+
+  if (invitation.acceptedAt) {
+    return actionError("Convite aceito não pode ser reenviado.");
+  }
+
+  if (invitation.canceledAt) {
+    return actionError("Convite cancelado não pode ser reenviado.");
+  }
+
+  const result = await refreshInvitationToken({
+    baseUrl: await getRequestBaseUrl(),
+    invitationId: invitation.id,
+  });
+
+  revalidatePath("/dashboard/equipe");
+  return {
+    success: true,
+    error: null,
+    message: result.emailSent
+      ? "Convite reenviado por e-mail."
+      : "Convite reenviado. SMTP não configurado; use o link abaixo para teste.",
+    inviteUrl: result.emailSent ? null : result.inviteUrl,
+  };
 }

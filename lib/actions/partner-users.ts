@@ -8,7 +8,10 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireAdmin } from "@/lib/authz";
-import { createUserInvitation } from "@/lib/invitations";
+import {
+  createUserInvitation,
+  refreshInvitationToken,
+} from "@/lib/invitations";
 import { prisma } from "@/lib/prisma";
 
 export type PartnerUserActionState = {
@@ -203,4 +206,102 @@ export async function updatePartnerUser(
   revalidatePath(`/dashboard/parceiros/${partnerId}/usuarios`);
   revalidatePath(`/dashboard/parceiros/${partnerId}/usuarios/${userId}/editar`);
   redirect(`/dashboard/parceiros/${partnerId}/usuarios`);
+}
+
+export async function cancelPartnerInvitation(
+  partnerId: string,
+  invitationId: string,
+  _state: PartnerUserActionState,
+  _formData: FormData
+): Promise<PartnerUserActionState> {
+  const session = await requireAdmin();
+  await ensurePartnerExists(partnerId);
+
+  const invitation = await prisma.userInvitation.findFirst({
+    where: {
+      id: invitationId,
+      partnerId,
+    },
+    select: {
+      id: true,
+      acceptedAt: true,
+      canceledAt: true,
+    },
+  });
+
+  if (!invitation) {
+    notFound();
+  }
+
+  if (invitation.acceptedAt) {
+    return actionError("Convite aceito não pode ser cancelado.");
+  }
+
+  if (invitation.canceledAt) {
+    return actionError("Convite já está cancelado.");
+  }
+
+  await prisma.userInvitation.update({
+    where: { id: invitation.id },
+    data: {
+      canceledAt: new Date(),
+      canceledById: session.user.id,
+    },
+  });
+
+  revalidatePath(`/dashboard/parceiros/${partnerId}/usuarios`);
+  return {
+    success: true,
+    error: null,
+    message: "Convite cancelado.",
+  };
+}
+
+export async function resendPartnerInvitation(
+  partnerId: string,
+  invitationId: string,
+  _state: PartnerUserActionState,
+  _formData: FormData
+): Promise<PartnerUserActionState> {
+  await requireAdmin();
+  await ensurePartnerExists(partnerId);
+
+  const invitation = await prisma.userInvitation.findFirst({
+    where: {
+      id: invitationId,
+      partnerId,
+    },
+    select: {
+      id: true,
+      acceptedAt: true,
+      canceledAt: true,
+    },
+  });
+
+  if (!invitation) {
+    notFound();
+  }
+
+  if (invitation.acceptedAt) {
+    return actionError("Convite aceito não pode ser reenviado.");
+  }
+
+  if (invitation.canceledAt) {
+    return actionError("Convite cancelado não pode ser reenviado.");
+  }
+
+  const result = await refreshInvitationToken({
+    baseUrl: await getRequestBaseUrl(),
+    invitationId: invitation.id,
+  });
+
+  revalidatePath(`/dashboard/parceiros/${partnerId}/usuarios`);
+  return {
+    success: true,
+    error: null,
+    message: result.emailSent
+      ? "Convite reenviado por e-mail."
+      : "Convite reenviado. SMTP não configurado; use o link abaixo para teste.",
+    inviteUrl: result.emailSent ? null : result.inviteUrl,
+  };
 }

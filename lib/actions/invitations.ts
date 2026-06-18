@@ -63,7 +63,12 @@ export async function acceptInvitation(
         where: { tokenHash },
       });
 
-      if (!invitation || invitation.acceptedAt || invitation.expiresAt <= now) {
+      if (
+        !invitation ||
+        invitation.acceptedAt ||
+        invitation.canceledAt ||
+        invitation.expiresAt <= now
+      ) {
         throw new Error("INVITATION_INVALID");
       }
 
