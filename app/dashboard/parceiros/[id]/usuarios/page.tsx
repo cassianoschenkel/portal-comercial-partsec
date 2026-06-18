@@ -1,3 +1,4 @@
+import { UserRole } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -5,6 +6,7 @@ import { InvitationsTable } from "@/components/partners/invitations-table";
 import { PartnerUsersTable } from "@/components/partners/partner-users-table";
 import {
   cancelPartnerInvitation,
+  deletePartnerUser,
   resendPartnerInvitation,
 } from "@/lib/actions/partner-users";
 import { requireAdmin } from "@/lib/authz";
@@ -15,7 +17,7 @@ export default async function PartnerUsersPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireAdmin();
+  const session = await requireAdmin();
 
   const { id } = await params;
 
@@ -33,7 +35,7 @@ export default async function PartnerUsersPage({
   }
 
   const users = await prisma.user.findMany({
-    where: { partnerId: partner.id },
+    where: { partnerId: partner.id, deletedAt: null },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -98,7 +100,19 @@ export default async function PartnerUsersPage({
         <h2 className="text-lg font-semibold text-slate-950">
           Usuários ativos
         </h2>
-        <PartnerUsersTable partnerId={partner.id} users={users} />
+        <PartnerUsersTable
+          partnerId={partner.id}
+          deletableRoles={[
+            UserRole.PARTNER,
+            UserRole.PARTNER_ADMIN,
+            UserRole.PARTNER_SELLER,
+            UserRole.PARTNER_VIEWER,
+          ]}
+          getDeleteAction={(userId) =>
+            deletePartnerUser.bind(null, partner.id, userId)
+          }
+          users={users}
+        />
       </section>
 
       <section className="space-y-3">

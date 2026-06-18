@@ -6,6 +6,7 @@ import { InvitationsTable } from "@/components/partners/invitations-table";
 import { PartnerUsersTable } from "@/components/partners/partner-users-table";
 import {
   cancelMyTeamInvitation,
+  deleteMyTeamUser,
   resendMyTeamInvitation,
 } from "@/lib/actions/my-team";
 import {
@@ -25,7 +26,7 @@ export default async function MyTeamPage() {
   }
 
   const users = await prisma.user.findMany({
-    where: { partnerId: session.user.partnerId },
+    where: { partnerId: session.user.partnerId, deletedAt: null },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -84,6 +85,8 @@ export default async function MyTeamPage() {
           partnerId={session.user.partnerId}
           editBasePath="/dashboard/equipe"
           editableRoles={editableTeamRoles}
+          deletableRoles={editableTeamRoles}
+          getDeleteAction={(userId) => deleteMyTeamUser.bind(null, userId)}
           users={users}
         />
       </section>

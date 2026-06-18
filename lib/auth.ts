@@ -41,7 +41,7 @@ export const authOptions: NextAuthOptions = {
     return null;
   }
 
-  if (!user.isActive) {
+  if (!user.isActive || user.deletedAt) {
     console.log("USUÁRIO INATIVO");
     return null;
   }

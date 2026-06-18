@@ -1,6 +1,8 @@
 import { UserRole } from "@prisma/client";
 import Link from "next/link";
 
+import { DeletePartnerUserButton } from "@/components/partners/delete-partner-user-button";
+
 type PartnerUserRow = {
   id: string;
   name: string;
@@ -14,6 +16,19 @@ type Props = {
   partnerId: string;
   editBasePath?: string;
   editableRoles?: UserRole[];
+  deletableRoles?: UserRole[];
+  getDeleteAction?: (userId: string) => (
+    state: {
+      success: boolean;
+      error: string | null;
+      message?: string | null;
+    },
+    formData: FormData
+  ) => Promise<{
+    success: boolean;
+    error: string | null;
+    message?: string | null;
+  }>;
   users: PartnerUserRow[];
 };
 
@@ -35,6 +50,8 @@ export function PartnerUsersTable({
   partnerId,
   editBasePath = `/dashboard/parceiros/${partnerId}/usuarios`,
   editableRoles = defaultEditableRoles,
+  deletableRoles = [],
+  getDeleteAction,
   users,
 }: Props) {
   return (
@@ -90,7 +107,7 @@ export function PartnerUsersTable({
                 {user.createdAt.toLocaleDateString("pt-BR")}
               </td>
               <td className="px-4 py-3">
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
                   {editableRoles.includes(user.role) ? (
                     <Link
                       href={`${editBasePath}/${user.id}/editar`}
@@ -103,6 +120,11 @@ export function PartnerUsersTable({
                       Editar em parceiro
                     </span>
                   )}
+                  {getDeleteAction && deletableRoles.includes(user.role) ? (
+                    <DeletePartnerUserButton
+                      action={getDeleteAction(user.id)}
+                    />
+                  ) : null}
                 </div>
               </td>
             </tr>

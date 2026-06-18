@@ -39,6 +39,7 @@ export default async function EditMyTeamUserPage({
       id: userId,
       partnerId: session.user.partnerId,
       role: { in: editableTeamRoles },
+      deletedAt: null,
     },
     select: {
       id: true,

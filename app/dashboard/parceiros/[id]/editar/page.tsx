@@ -19,6 +19,7 @@ export default async function EditPartnerPage({
     where: {
       id,
       role: "PARTNER",
+      deletedAt: null,
     },
   });
 

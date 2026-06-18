@@ -39,6 +39,7 @@ export default async function EditPartnerUserPage({
       id: userId,
       partnerId: partner.id,
       role: { in: editablePartnerUserRoles },
+      deletedAt: null,
     },
     select: {
       id: true,

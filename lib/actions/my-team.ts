@@ -117,7 +117,7 @@ export async function createMyTeamUser(
   const email = parsed.data.email.toLowerCase().trim();
   const existingUser = await prisma.user.findUnique({
     where: { email },
-    select: { id: true },
+    select: { id: true, deletedAt: true },
   });
 
   if (existingUser) {
@@ -172,6 +172,7 @@ export async function updateMyTeamUser(
       id: userId,
       partnerId,
       role: { in: [...manageableRoles] },
+      deletedAt: null,
     },
     select: { id: true },
   });
@@ -211,6 +212,48 @@ export async function updateMyTeamUser(
   revalidatePath("/dashboard/equipe");
   revalidatePath(`/dashboard/equipe/${userId}/editar`);
   redirect("/dashboard/equipe");
+}
+
+export async function deleteMyTeamUser(
+  userId: string,
+  _state: MyTeamActionState,
+  _formData: FormData
+): Promise<MyTeamActionState> {
+  const { currentUserId, partnerId } = await requireTeamManagerScope();
+
+  if (userId === currentUserId) {
+    return actionError("Você não pode excluir seu próprio usuário.");
+  }
+
+  const user = await prisma.user.findFirst({
+    where: {
+      id: userId,
+      partnerId,
+      role: { in: [...manageableRoles] },
+      deletedAt: null,
+    },
+    select: { id: true },
+  });
+
+  if (!user) {
+    notFound();
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      deletedAt: new Date(),
+      deletedById: currentUserId,
+      isActive: false,
+    },
+  });
+
+  revalidatePath("/dashboard/equipe");
+  return {
+    success: true,
+    error: null,
+    message: "Usuário excluído.",
+  };
 }
 
 export async function cancelMyTeamInvitation(

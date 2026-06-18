@@ -27,6 +27,13 @@ const partnerUserRoles = [
   UserRole.PARTNER_VIEWER,
 ] as const;
 
+const adminDeletablePartnerRoles = [
+  UserRole.PARTNER,
+  UserRole.PARTNER_ADMIN,
+  UserRole.PARTNER_SELLER,
+  UserRole.PARTNER_VIEWER,
+] as const;
+
 type PartnerUserRole = (typeof partnerUserRoles)[number];
 
 const partnerUserRoleSchema = z.string().refine(
@@ -114,7 +121,7 @@ export async function createPartnerUser(
   const email = parsed.data.email.toLowerCase().trim();
   const existingUser = await prisma.user.findUnique({
     where: { email },
-    select: { id: true },
+    select: { id: true, deletedAt: true },
   });
 
   if (existingUser) {
@@ -167,6 +174,7 @@ export async function updatePartnerUser(
       id: userId,
       partnerId,
       role: { in: [...partnerUserRoles] },
+      deletedAt: null,
     },
     select: { id: true },
   });
@@ -206,6 +214,71 @@ export async function updatePartnerUser(
   revalidatePath(`/dashboard/parceiros/${partnerId}/usuarios`);
   revalidatePath(`/dashboard/parceiros/${partnerId}/usuarios/${userId}/editar`);
   redirect(`/dashboard/parceiros/${partnerId}/usuarios`);
+}
+
+export async function deletePartnerUser(
+  partnerId: string,
+  userId: string,
+  _state: PartnerUserActionState,
+  _formData: FormData
+): Promise<PartnerUserActionState> {
+  const session = await requireAdmin();
+  await ensurePartnerExists(partnerId);
+
+  if (userId === session.user.id) {
+    return actionError("Você não pode excluir seu próprio usuário.");
+  }
+
+  const user = await prisma.user.findFirst({
+    where: {
+      id: userId,
+      partnerId,
+      role: { in: [...adminDeletablePartnerRoles] },
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      role: true,
+    },
+  });
+
+  if (!user) {
+    notFound();
+  }
+
+  if (user.role === UserRole.PARTNER || user.role === UserRole.PARTNER_ADMIN) {
+    const activeAdminCount = await prisma.user.count({
+      where: {
+        partnerId,
+        role: { in: [UserRole.PARTNER, UserRole.PARTNER_ADMIN] },
+        isActive: true,
+        deletedAt: null,
+        NOT: { id: user.id },
+      },
+    });
+
+    if (activeAdminCount === 0) {
+      return actionError(
+        "Não é possível excluir o último administrador ativo deste parceiro."
+      );
+    }
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      deletedAt: new Date(),
+      deletedById: session.user.id,
+      isActive: false,
+    },
+  });
+
+  revalidatePath(`/dashboard/parceiros/${partnerId}/usuarios`);
+  return {
+    success: true,
+    error: null,
+    message: "Usuário excluído.",
+  };
 }
 
 export async function cancelPartnerInvitation(

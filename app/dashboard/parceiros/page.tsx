@@ -10,6 +10,7 @@ export default async function PartnersPage() {
   const partners = await prisma.user.findMany({
     where: {
       role: "PARTNER",
+      deletedAt: null,
     },
     orderBy: {
       createdAt: "desc",
