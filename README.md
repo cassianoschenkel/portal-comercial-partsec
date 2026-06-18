@@ -43,7 +43,6 @@ npm run dev
 Credenciais criadas pelo seed:
 
 - Admin: `admin@partsec.com.br` / `admin123`
-- Parceiro: `parceiro@partsec.com.br` / `parceiro123`
 
 ## Estrutura
 
@@ -52,3 +51,9 @@ Credenciais criadas pelo seed:
 - `lib/`: Prisma Client, Auth.js/NextAuth, actions e validacoes.
 - `prisma/`: schema, migration inicial e seed.
 - `types/`: augmentations de tipos, incluindo sessao NextAuth.
+
+## Producao
+
+- Guia de deploy: `docs/producao-deploy.md`
+- Checklist pos-deploy: `docs/producao-checklist.md`
+- Checklist pre-producao: `docs/pre-producao-checklist.md`
