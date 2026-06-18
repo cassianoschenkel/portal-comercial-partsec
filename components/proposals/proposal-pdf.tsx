@@ -22,7 +22,7 @@ Font.registerHyphenationCallback((word) => [word]);
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 0,
+    paddingTop: 32,
     paddingHorizontal: 32,
     paddingBottom: 88,
     fontSize: 10,
@@ -31,10 +31,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
   },
   topBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
     height: 16,
     backgroundColor: "#0f172a",
-    marginBottom: 20,
-    marginHorizontal: -32,
   },
   header: {
     marginBottom: 16,
@@ -86,6 +88,14 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 14,
   },
+  pdfSection: {
+    marginBottom: 14,
+    paddingTop: 2,
+  },
+  scopeTableSection: {
+    breakInside: "avoid",
+    pageBreakInside: "avoid",
+  },
   sectionCard: {
     borderWidth: 1,
     borderColor: "#e2e8f0",
@@ -135,6 +145,14 @@ const styles = StyleSheet.create({
   bodyText: {
     fontSize: 10,
     lineHeight: 1.45,
+    color: "#334155",
+  },
+  compactScopeCard: {
+    padding: 12,
+  },
+  compactScopeText: {
+    fontSize: 9.5,
+    lineHeight: 1.3,
     color: "#334155",
   },
   configGrid: {
@@ -270,6 +288,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderTopWidth: 1,
     borderTopColor: "#e2e8f0",
+  },
+  tableHeaderGroup: {
+    breakInside: "avoid",
+    pageBreakInside: "avoid",
+  },
+  tableRowGroup: {
+    breakInside: "avoid",
+    pageBreakInside: "avoid",
   },
   colModule: {
     width: "30%",
@@ -443,6 +469,37 @@ function formatCurrency(value: unknown) {
   }).format(Number(value));
 }
 
+const DEFAULT_PDF_SCOPE_DESCRIPTION =
+  "A presente proposta contempla a implantação e operação do Partsec One para centralizar o monitoramento, a visibilidade operacional e o suporte gerenciado de ativos críticos, endpoints e serviços em nuvem.";
+
+function getPdfScopeDescription(scopeDescription?: string | null) {
+  const normalized = scopeDescription?.replace(/\s+/g, " ").trim();
+
+  if (!normalized) {
+    return DEFAULT_PDF_SCOPE_DESCRIPTION;
+  }
+
+  return normalized.length > 180 ? DEFAULT_PDF_SCOPE_DESCRIPTION : normalized;
+}
+
+function groupRowsForPdf<T>(items: T[]) {
+  const groups: T[][] = [];
+
+  for (let index = 0; index < items.length; index += 2) {
+    groups.push(items.slice(index, index + 2));
+  }
+
+  const lastGroup = groups[groups.length - 1];
+
+  if (lastGroup?.length === 1 && groups.length > 1) {
+    const previousGroup = groups[groups.length - 2];
+    previousGroup.push(lastGroup[0]);
+    groups.pop();
+  }
+
+  return groups;
+}
+
 function formatDate(value: Date | string) {
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
@@ -565,12 +622,31 @@ export function ProposalPDF({ proposal }: ProposalPDFProps) {
 
 O prazo para a finalização da implementação é de até 30 dias corridos a partir do aceite formal da proposta.`;
   const displayItems = getDisplayItems(proposal);
+  const scopeDescription = getPdfScopeDescription(proposal.scopeDescription);
+  const keepScopeTableTogether = displayItems.length <= 5;
+  const headerGroupItems = keepScopeTableTogether
+    ? []
+    : displayItems.slice(0, Math.min(2, displayItems.length));
+  const remainingDisplayItems = keepScopeTableTogether
+    ? displayItems
+    : displayItems.slice(headerGroupItems.length);
+  const displayItemGroups = groupRowsForPdf(remainingDisplayItems);
   const financial = getFinancialSummary(proposal);
+  const renderScopeRow = (item: (typeof displayItems)[number]) => (
+    <View key={item.id} style={styles.tableRow} wrap={false}>
+      <Text style={styles.colModule}>{item.moduleLabel}</Text>
+      <Text style={styles.colQuantity}>{item.quantity}</Text>
+      <Text style={styles.colUnit}>{item.unitLabel}</Text>
+      <Text style={styles.colRange}>{item.rangeLabel}</Text>
+      <Text style={styles.colMonthly}>{formatCurrency(item.monthlyPrice)}</Text>
+      <Text style={styles.colSetup}>{formatCurrency(item.setupPrice)}</Text>
+    </View>
+  );
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <View style={styles.topBar} />
+        <View style={styles.topBar} fixed />
 
         <View style={styles.header}>
           <View style={styles.headerRow}>
@@ -678,42 +754,50 @@ O prazo para a finalização da implementação é de até 30 dias corridos a pa
           </Text>
         </View>
 
-        <View style={[styles.section, { marginTop: 14 }]}>
-          <View style={styles.sectionSoftCard}>
+        <View style={[styles.section, { marginTop: 12 }]}>
+          <View style={[styles.sectionSoftCard, styles.compactScopeCard]}>
             <Text style={styles.sectionTitle}>Escopo desta proposta</Text>
-            <Text style={styles.bodyText}>
-              {proposal.scopeDescription?.trim()
-                ? proposal.scopeDescription
-                : "Escopo específico não informado."}
-            </Text>
+            <Text style={styles.compactScopeText}>{scopeDescription}</Text>
           </View>
         </View>
 
-        <View style={styles.section} wrap={false}>
+        <View
+          style={[
+            styles.pdfSection,
+            ...(keepScopeTableTogether ? [styles.scopeTableSection] : []),
+          ]}
+          wrap={!keepScopeTableTogether}
+        >
           <Text style={styles.sectionTitle}>Escopo contratado</Text>
 
           <View style={styles.tableBox}>
-            <View style={styles.tableHeader}>
-              <Text style={[styles.colModule, styles.tableHeaderText]}>Módulo</Text>
-              <Text style={[styles.colQuantity, styles.tableHeaderText]}>Qtd.</Text>
-              <Text style={[styles.colUnit, styles.tableHeaderText]}>Unidade</Text>
-              <Text style={[styles.colRange, styles.tableHeaderText]}>Faixa</Text>
-              <Text style={[styles.colMonthly, styles.tableHeaderText]}>Mensalidade</Text>
-              <Text style={[styles.colSetup, styles.tableHeaderText]}>Setup</Text>
+            <View
+              style={
+                headerGroupItems.length > 0
+                  ? styles.tableHeaderGroup
+                  : undefined
+              }
+              wrap={headerGroupItems.length > 0 ? false : true}
+            >
+              <View style={styles.tableHeader}>
+                <Text style={[styles.colModule, styles.tableHeaderText]}>Módulo</Text>
+                <Text style={[styles.colQuantity, styles.tableHeaderText]}>Qtd.</Text>
+                <Text style={[styles.colUnit, styles.tableHeaderText]}>Unidade</Text>
+                <Text style={[styles.colRange, styles.tableHeaderText]}>Faixa</Text>
+                <Text style={[styles.colMonthly, styles.tableHeaderText]}>Mensalidade</Text>
+                <Text style={[styles.colSetup, styles.tableHeaderText]}>Setup</Text>
+              </View>
+
+              {headerGroupItems.map(renderScopeRow)}
             </View>
 
-            {displayItems.map((item) => (
-              <View key={item.id} style={styles.tableRow}>
-                <Text style={styles.colModule}>{item.moduleLabel}</Text>
-                <Text style={styles.colQuantity}>{item.quantity}</Text>
-                <Text style={styles.colUnit}>{item.unitLabel}</Text>
-                <Text style={styles.colRange}>{item.rangeLabel}</Text>
-                <Text style={styles.colMonthly}>
-                  {formatCurrency(item.monthlyPrice)}
-                </Text>
-                <Text style={styles.colSetup}>
-                  {formatCurrency(item.setupPrice)}
-                </Text>
+            {displayItemGroups.map((group) => (
+              <View
+                key={group.map((item) => item.id).join("-")}
+                style={styles.tableRowGroup}
+                wrap={false}
+              >
+                {group.map(renderScopeRow)}
               </View>
             ))}
           </View>
@@ -734,7 +818,7 @@ O prazo para a finalização da implementação é de até 30 dias corridos a pa
       </Page>
 
       <Page size="A4" style={styles.page}>
-        <View style={styles.topBar} />
+        <View style={styles.topBar} fixed />
 
         <View style={[styles.section, styles.financialSectionBreak]}>
           <Text style={styles.sectionTitle}>Resumo financeiro</Text>
@@ -854,7 +938,7 @@ O prazo para a finalização da implementação é de até 30 dias corridos a pa
       </Page>
 
       <Page size="A4" style={styles.page}>
-        <View style={styles.topBar} />
+        <View style={styles.topBar} fixed />
 
         <View style={[styles.section, styles.aboutSection]} wrap={false}>
           <View style={styles.sectionSoftCard}>
