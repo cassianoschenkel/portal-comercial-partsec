@@ -231,6 +231,13 @@ export default async function PartnerCommissionsPage({
           status: true,
         },
       },
+      statement: {
+        select: {
+          id: true,
+          referenceMonth: true,
+          status: true,
+        },
+      },
       proposal: {
         select: {
           id: true,
@@ -332,6 +339,12 @@ export default async function PartnerCommissionsPage({
             className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             Lotes de pagamento
+          </Link>
+          <Link
+            href="/dashboard/financeiro/comissoes/relatorios"
+            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Relatórios mensais
           </Link>
           <CommissionActionForm
             action={syncPartnerCommissions}
@@ -516,6 +529,7 @@ export default async function PartnerCommissionsPage({
                   "Status comissão",
                   "Operacional",
                   "Lote",
+                  "Relatório",
                   "Valor",
                   "Liberação",
                   "Recebimento cliente",
@@ -605,6 +619,19 @@ export default async function PartnerCommissionsPage({
                         className="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
                       >
                         Em lote · {commission.batch.status}
+                      </Link>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-slate-700">
+                    {commission.statement ? (
+                      <Link
+                        href={`/dashboard/financeiro/comissoes/relatorios/${commission.statement.id}`}
+                        className="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        {commission.statement.referenceMonth} ·{" "}
+                        {commission.statement.status}
                       </Link>
                     ) : (
                       "-"
@@ -769,7 +796,7 @@ export default async function PartnerCommissionsPage({
               {commissions.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={17}
+                    colSpan={18}
                     className="px-4 py-10 text-center text-sm text-slate-500"
                   >
                     Nenhuma comissão encontrada para os filtros selecionados.

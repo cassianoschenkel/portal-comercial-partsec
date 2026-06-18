@@ -16,6 +16,7 @@ export async function GET(request: Request) {
     include: {
       partner: { select: { companyName: true, name: true } },
       batch: { select: { id: true, referenceMonth: true, status: true } },
+      statement: { select: { id: true, referenceMonth: true, status: true } },
       proposal: {
         select: {
           proposalNumber: true,
@@ -46,6 +47,7 @@ export async function GET(request: Request) {
       "Data pagamento",
       "Referência pagamento",
       "Lote",
+      "Relatório mensal",
       "Observações",
     ],
     ...commissions.map((commission) => [
@@ -74,6 +76,9 @@ export async function GET(request: Request) {
       commission.paymentReference || "",
       commission.batch
         ? `${commission.batch.referenceMonth || commission.batch.id} (${commission.batch.status})`
+        : "",
+      commission.statement
+        ? `${commission.statement.referenceMonth || commission.statement.id} (${commission.statement.status})`
         : "",
       commission.notes || "",
     ]),

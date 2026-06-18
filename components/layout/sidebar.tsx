@@ -27,12 +27,19 @@ export async function Sidebar() {
           { href: "/dashboard/financeiro", label: "Financeiro" },
           { href: "/dashboard/financeiro/comissoes", label: "Comissões" },
           { href: "/dashboard/financeiro/comissoes/lotes", label: "Lotes" },
+          {
+            href: "/dashboard/financeiro/comissoes/relatorios",
+            label: "Relatórios de Comissões",
+          },
         ]
       : [];
 
   const teamItems: NavItem[] =
     role === UserRole.PARTNER_ADMIN || role === UserRole.PARTNER
-      ? [{ href: "/dashboard/equipe", label: "Equipe" }]
+      ? [
+          { href: "/dashboard/equipe", label: "Equipe" },
+          { href: "/dashboard/comissoes", label: "Comissões" },
+        ]
       : [];
 
   const items = [...commonItems, ...adminItems, ...teamItems];
