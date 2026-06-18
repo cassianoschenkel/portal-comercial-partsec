@@ -200,15 +200,28 @@ export default async function FinancialDashboardPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-950">Financeiro</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Visão administrativa dos valores calculados nas propostas.
-        </p>
-        {!hasPeriodFilter ? (
-          <p className="mt-2 text-sm text-slate-500">
-            Período padrão: últimos 30 dias.
-          </p>
-        ) : null}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-slate-950">
+              Financeiro
+            </h1>
+            <p className="mt-1 text-sm text-slate-600">
+              Visão administrativa dos valores calculados nas propostas.
+            </p>
+            {!hasPeriodFilter ? (
+              <p className="mt-2 text-sm text-slate-500">
+                Período padrão: últimos 30 dias.
+              </p>
+            ) : null}
+          </div>
+
+          <Link
+            href="/dashboard/financeiro/comissoes"
+            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Comissões
+          </Link>
+        </div>
       </div>
 
       <form className="rounded-lg border border-slate-200 bg-white p-4">

@@ -23,6 +23,12 @@ enum ProposalStatus {
   CANCELLED
 }
 
+enum CommissionStatus {
+  PENDING
+  PAID
+  CANCELED
+}
+
 enum ProposalPlan {
   BASIC
   PROFESSIONAL
@@ -47,26 +53,28 @@ enum UnitType {
 }
 
 model User {
-  id                  String           @id @default(cuid())
+  id                  String              @id @default(cuid())
   name                String
-  email               String           @unique
+  email               String              @unique
   passwordHash        String
-  role                UserRole         @default(PARTNER)
+  role                UserRole            @default(PARTNER)
   partnerId           String?
   companyName         String?
   phone               String?
-  commissionPercent   Decimal          @default(30) @db.Decimal(5, 2)
-  isActive            Boolean          @default(true)
-  partner             Partner?         @relation(fields: [partnerId], references: [id], onDelete: SetNull)
-  createdProposals    Proposal[]       @relation("ProposalCreatedBy")
-  createdInvitations  UserInvitation[] @relation("UserInvitationCreatedBy")
-  canceledInvitations UserInvitation[] @relation("UserInvitationCanceledBy")
+  commissionPercent   Decimal             @default(30) @db.Decimal(5, 2)
+  isActive            Boolean             @default(true)
+  partner             Partner?            @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  createdProposals    Proposal[]          @relation("ProposalCreatedBy")
+  createdInvitations  UserInvitation[]    @relation("UserInvitationCreatedBy")
+  canceledInvitations UserInvitation[]    @relation("UserInvitationCanceledBy")
+  paidCommissions     PartnerCommission[] @relation("PartnerCommissionPaidBy")
+  canceledCommissions PartnerCommission[] @relation("PartnerCommissionCanceledBy")
   deletedAt           DateTime?
   deletedById         String?
-  deletedBy           User?            @relation("UserDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
-  deletedUsers        User[]           @relation("UserDeletedBy")
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
+  deletedBy           User?               @relation("UserDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+  deletedUsers        User[]              @relation("UserDeletedBy")
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
   @@index([partnerId])
   @@index([deletedAt])
@@ -74,21 +82,22 @@ model User {
 }
 
 model Partner {
-  id                       String           @id @default(cuid())
+  id                       String              @id @default(cuid())
   name                     String
   email                    String?
   companyName              String
   tradeName                String?
   document                 String?
   phone                    String?
-  defaultCommissionPercent Decimal          @default(30) @db.Decimal(5, 2)
-  isActive                 Boolean          @default(true)
+  defaultCommissionPercent Decimal             @default(30) @db.Decimal(5, 2)
+  isActive                 Boolean             @default(true)
   users                    User[]
   invitations              UserInvitation[]
   customers                Customer[]
   proposals                Proposal[]
-  createdAt                DateTime         @default(now())
-  updatedAt                DateTime         @updatedAt
+  commissions              PartnerCommission[]
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
 
   @@index([companyName])
 }
@@ -142,50 +151,78 @@ model Customer {
 }
 
 model Proposal {
-  id                          String         @id @default(cuid())
-  proposalNumber              Int            @unique @default(autoincrement())
+  id                          String             @id @default(cuid())
+  proposalNumber              Int                @unique @default(autoincrement())
   customerId                  String
   partnerId                   String
   createdById                 String?
   title                       String
-  status                      ProposalStatus @default(DRAFT)
+  status                      ProposalStatus     @default(DRAFT)
   plan                        ProposalPlan
   activeCount                 Int
-  unitPrice                   Decimal        @db.Decimal(10, 2)
-  setupFee                    Decimal        @default(0) @db.Decimal(10, 2)
-  partnerCommissionSetupValue Decimal        @default(0) @db.Decimal(10, 2)
-  subtotal                    Decimal        @db.Decimal(10, 2)
-  discountPercent             Decimal        @db.Decimal(5, 2)
-  discountValue               Decimal        @db.Decimal(10, 2)
-  total                       Decimal        @db.Decimal(10, 2)
-  partnerCommissionPercent    Decimal        @db.Decimal(5, 2)
-  partnerCommissionValue      Decimal        @db.Decimal(10, 2)
+  unitPrice                   Decimal            @db.Decimal(10, 2)
+  setupFee                    Decimal            @default(0) @db.Decimal(10, 2)
+  partnerCommissionSetupValue Decimal            @default(0) @db.Decimal(10, 2)
+  subtotal                    Decimal            @db.Decimal(10, 2)
+  discountPercent             Decimal            @db.Decimal(5, 2)
+  discountValue               Decimal            @db.Decimal(10, 2)
+  total                       Decimal            @db.Decimal(10, 2)
+  partnerCommissionPercent    Decimal            @db.Decimal(5, 2)
+  partnerCommissionValue      Decimal            @db.Decimal(10, 2)
   notes                       String?
   scopeDescription            String?
   acceptedByName              String?
   acceptedByEmail             String?
   acceptedAt                  DateTime?
-  monthlySubtotal             Decimal        @default(0) @db.Decimal(10, 2)
-  setupSubtotal               Decimal        @default(0) @db.Decimal(10, 2)
-  discountAmount              Decimal        @default(0) @db.Decimal(10, 2)
-  finalMonthlyPrice           Decimal        @default(0) @db.Decimal(10, 2)
-  finalSetupPrice             Decimal        @default(0) @db.Decimal(10, 2)
-  firstMonthTotal             Decimal        @default(0) @db.Decimal(10, 2)
-  partnerCommissionPct        Decimal        @default(0) @db.Decimal(5, 2)
-  partnerCommission           Decimal        @default(0) @db.Decimal(10, 2)
-  partsecNetRevenue           Decimal        @default(0) @db.Decimal(10, 2)
-  validityDays                Int            @default(15)
+  monthlySubtotal             Decimal            @default(0) @db.Decimal(10, 2)
+  setupSubtotal               Decimal            @default(0) @db.Decimal(10, 2)
+  discountAmount              Decimal            @default(0) @db.Decimal(10, 2)
+  finalMonthlyPrice           Decimal            @default(0) @db.Decimal(10, 2)
+  finalSetupPrice             Decimal            @default(0) @db.Decimal(10, 2)
+  firstMonthTotal             Decimal            @default(0) @db.Decimal(10, 2)
+  partnerCommissionPct        Decimal            @default(0) @db.Decimal(5, 2)
+  partnerCommission           Decimal            @default(0) @db.Decimal(10, 2)
+  partsecNetRevenue           Decimal            @default(0) @db.Decimal(10, 2)
+  validityDays                Int                @default(15)
   internalNotes               String?
-  customer                    Customer       @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  partner                     Partner        @relation(fields: [partnerId], references: [id], onDelete: Restrict)
-  createdBy                   User?          @relation("ProposalCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  customer                    Customer           @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  partner                     Partner            @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  createdBy                   User?              @relation("ProposalCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   items                       ProposalItem[]
-  createdAt                   DateTime       @default(now())
-  updatedAt                   DateTime       @updatedAt
+  commission                  PartnerCommission?
+  createdAt                   DateTime           @default(now())
+  updatedAt                   DateTime           @updatedAt
 
   @@index([partnerId])
   @@index([createdById])
   @@index([status])
+}
+
+model PartnerCommission {
+  id               String           @id @default(cuid())
+  proposalId       String           @unique
+  proposal         Proposal         @relation(fields: [proposalId], references: [id], onDelete: Restrict)
+  partnerId        String
+  partner          Partner          @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  amount           Decimal          @db.Decimal(10, 2)
+  status           CommissionStatus @default(PENDING)
+  dueDate          DateTime?
+  paidAt           DateTime?
+  paidById         String?
+  paidBy           User?            @relation("PartnerCommissionPaidBy", fields: [paidById], references: [id], onDelete: SetNull)
+  paymentReference String?
+  notes            String?
+  canceledAt       DateTime?
+  canceledById     String?
+  canceledBy       User?            @relation("PartnerCommissionCanceledBy", fields: [canceledById], references: [id], onDelete: SetNull)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([partnerId])
+  @@index([status])
+  @@index([paidAt])
+  @@index([createdAt])
+  @@index([dueDate])
 }
 
 model ProposalItem {
