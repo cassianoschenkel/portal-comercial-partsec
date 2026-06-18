@@ -31,7 +31,7 @@ export default async function NewCommissionBatchPage() {
           Novo lote de comissões
         </h1>
         <p className="mt-1 text-sm text-slate-600">
-          Agrupe comissões pendentes de um parceiro em um fechamento.
+          Agrupe comissões liberadas e pendentes de pagamento em um fechamento.
         </p>
       </div>
 

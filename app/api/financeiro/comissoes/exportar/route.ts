@@ -39,6 +39,9 @@ export async function GET(request: Request) {
       "Status proposta",
       "Status comissão",
       "Valor comissão",
+      "Status operacional",
+      "Data liberação",
+      "Referência recebimento cliente",
       "Data criação",
       "Data pagamento",
       "Referência pagamento",
@@ -57,6 +60,15 @@ export async function GET(request: Request) {
       formatProposalStatus(commission.proposal.status),
       commission.status,
       formatCsvDecimal(commission.amount),
+      commission.status === "CANCELED"
+        ? "Cancelada"
+        : commission.status === "PAID"
+          ? "Paga"
+          : commission.releasedAt
+            ? "Liberada"
+            : "Prevista",
+      formatCsvDate(commission.releasedAt),
+      commission.clientPaymentReference || "",
       formatCsvDate(commission.createdAt),
       formatCsvDate(commission.paidAt),
       commission.paymentReference || "",

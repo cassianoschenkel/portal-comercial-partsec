@@ -59,31 +59,33 @@ enum UnitType {
 }
 
 model User {
-  id                        String                   @id @default(cuid())
-  name                      String
-  email                     String                   @unique
-  passwordHash              String
-  role                      UserRole                 @default(PARTNER)
-  partnerId                 String?
-  companyName               String?
-  phone                     String?
-  commissionPercent         Decimal                  @default(30) @db.Decimal(5, 2)
-  isActive                  Boolean                  @default(true)
-  partner                   Partner?                 @relation(fields: [partnerId], references: [id], onDelete: SetNull)
-  createdProposals          Proposal[]               @relation("ProposalCreatedBy")
-  createdInvitations        UserInvitation[]         @relation("UserInvitationCreatedBy")
-  canceledInvitations       UserInvitation[]         @relation("UserInvitationCanceledBy")
-  paidCommissions           PartnerCommission[]      @relation("PartnerCommissionPaidBy")
-  canceledCommissions       PartnerCommission[]      @relation("PartnerCommissionCanceledBy")
-  createdCommissionBatches  PartnerCommissionBatch[] @relation("PartnerCommissionBatchCreatedBy")
-  paidCommissionBatches     PartnerCommissionBatch[] @relation("PartnerCommissionBatchPaidBy")
-  canceledCommissionBatches PartnerCommissionBatch[] @relation("PartnerCommissionBatchCanceledBy")
-  deletedAt                 DateTime?
-  deletedById               String?
-  deletedBy                 User?                    @relation("UserDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
-  deletedUsers              User[]                   @relation("UserDeletedBy")
-  createdAt                 DateTime                 @default(now())
-  updatedAt                 DateTime                 @updatedAt
+  id                                String                   @id @default(cuid())
+  name                              String
+  email                             String                   @unique
+  passwordHash                      String
+  role                              UserRole                 @default(PARTNER)
+  partnerId                         String?
+  companyName                       String?
+  phone                             String?
+  commissionPercent                 Decimal                  @default(30) @db.Decimal(5, 2)
+  isActive                          Boolean                  @default(true)
+  partner                           Partner?                 @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  createdProposals                  Proposal[]               @relation("ProposalCreatedBy")
+  createdInvitations                UserInvitation[]         @relation("UserInvitationCreatedBy")
+  canceledInvitations               UserInvitation[]         @relation("UserInvitationCanceledBy")
+  paidCommissions                   PartnerCommission[]      @relation("PartnerCommissionPaidBy")
+  canceledCommissions               PartnerCommission[]      @relation("PartnerCommissionCanceledBy")
+  clientPaymentConfirmedCommissions PartnerCommission[]      @relation("PartnerCommissionClientPaymentConfirmedBy")
+  releasedCommissions               PartnerCommission[]      @relation("PartnerCommissionReleasedBy")
+  createdCommissionBatches          PartnerCommissionBatch[] @relation("PartnerCommissionBatchCreatedBy")
+  paidCommissionBatches             PartnerCommissionBatch[] @relation("PartnerCommissionBatchPaidBy")
+  canceledCommissionBatches         PartnerCommissionBatch[] @relation("PartnerCommissionBatchCanceledBy")
+  deletedAt                         DateTime?
+  deletedById                       String?
+  deletedBy                         User?                    @relation("UserDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+  deletedUsers                      User[]                   @relation("UserDeletedBy")
+  createdAt                         DateTime                 @default(now())
+  updatedAt                         DateTime                 @updatedAt
 
   @@index([partnerId])
   @@index([deletedAt])
@@ -209,26 +211,34 @@ model Proposal {
 }
 
 model PartnerCommission {
-  id               String                  @id @default(cuid())
-  proposalId       String                  @unique
-  proposal         Proposal                @relation(fields: [proposalId], references: [id], onDelete: Restrict)
-  partnerId        String
-  partner          Partner                 @relation(fields: [partnerId], references: [id], onDelete: Restrict)
-  amount           Decimal                 @db.Decimal(10, 2)
-  status           CommissionStatus        @default(PENDING)
-  dueDate          DateTime?
-  paidAt           DateTime?
-  paidById         String?
-  paidBy           User?                   @relation("PartnerCommissionPaidBy", fields: [paidById], references: [id], onDelete: SetNull)
-  paymentReference String?
-  notes            String?
-  canceledAt       DateTime?
-  canceledById     String?
-  canceledBy       User?                   @relation("PartnerCommissionCanceledBy", fields: [canceledById], references: [id], onDelete: SetNull)
-  batchId          String?
-  batch            PartnerCommissionBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
+  id                              String                  @id @default(cuid())
+  proposalId                      String                  @unique
+  proposal                        Proposal                @relation(fields: [proposalId], references: [id], onDelete: Restrict)
+  partnerId                       String
+  partner                         Partner                 @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  amount                          Decimal                 @db.Decimal(10, 2)
+  status                          CommissionStatus        @default(PENDING)
+  dueDate                         DateTime?
+  paidAt                          DateTime?
+  paidById                        String?
+  paidBy                          User?                   @relation("PartnerCommissionPaidBy", fields: [paidById], references: [id], onDelete: SetNull)
+  paymentReference                String?
+  notes                           String?
+  clientFirstPaymentConfirmedAt   DateTime?
+  clientFirstPaymentConfirmedById String?
+  clientFirstPaymentConfirmedBy   User?                   @relation("PartnerCommissionClientPaymentConfirmedBy", fields: [clientFirstPaymentConfirmedById], references: [id], onDelete: SetNull)
+  clientPaymentReference          String?
+  releasedAt                      DateTime?
+  releasedById                    String?
+  releasedBy                      User?                   @relation("PartnerCommissionReleasedBy", fields: [releasedById], references: [id], onDelete: SetNull)
+  releaseNotes                    String?
+  canceledAt                      DateTime?
+  canceledById                    String?
+  canceledBy                      User?                   @relation("PartnerCommissionCanceledBy", fields: [canceledById], references: [id], onDelete: SetNull)
+  batchId                         String?
+  batch                           PartnerCommissionBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  createdAt                       DateTime                @default(now())
+  updatedAt                       DateTime                @updatedAt
 
   @@index([partnerId])
   @@index([status])
@@ -236,6 +246,8 @@ model PartnerCommission {
   @@index([createdAt])
   @@index([dueDate])
   @@index([batchId])
+  @@index([releasedAt])
+  @@index([clientFirstPaymentConfirmedAt])
 }
 
 model PartnerCommissionBatch {

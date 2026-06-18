@@ -27,6 +27,7 @@ export function buildCommissionWhere(searchParams: URLSearchParams) {
   const dateTo = parseEndDate(searchParams.get("dateTo")) ?? new Date();
   const query = searchParams.get("q")?.trim();
   const batchId = searchParams.get("batchId")?.trim();
+  const operationalStatus = searchParams.get("operationalStatus");
   const selectedStatus = Object.values(CommissionStatus).includes(
     status as CommissionStatus
   )
@@ -71,6 +72,18 @@ export function buildCommissionWhere(searchParams: URLSearchParams) {
       ? { paidAt: { gte: dateFrom, lte: dateTo } }
       : { createdAt: { gte: dateFrom, lte: dateTo } }),
     ...(searchFilters.length > 0 ? { OR: searchFilters } : {}),
+    ...(operationalStatus === "forecast"
+      ? { status: CommissionStatus.PENDING, releasedAt: null }
+      : {}),
+    ...(operationalStatus === "released"
+      ? { status: CommissionStatus.PENDING, releasedAt: { not: null } }
+      : {}),
+    ...(operationalStatus === "paid"
+      ? { status: CommissionStatus.PAID }
+      : {}),
+    ...(operationalStatus === "canceled"
+      ? { status: CommissionStatus.CANCELED }
+      : {}),
   } satisfies Prisma.PartnerCommissionWhereInput;
 }
 

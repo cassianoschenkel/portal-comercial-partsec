@@ -186,6 +186,9 @@ export default async function PrintCommissionBatchPage({
               <th className="px-3 py-2 text-left font-semibold">
                 Status proposta
               </th>
+              <th className="px-3 py-2 text-left font-semibold">
+                Liberação
+              </th>
               <th className="px-3 py-2 text-right font-semibold">
                 Comissão
               </th>
@@ -214,6 +217,7 @@ export default async function PrintCommissionBatchPage({
                 <td className="px-3 py-2">
                   {formatProposalStatus(commission.proposal.status)}
                 </td>
+                <td className="px-3 py-2">{formatDate(commission.releasedAt)}</td>
                 <td className="px-3 py-2 text-right">
                   {formatCurrency(commission.amount)}
                 </td>

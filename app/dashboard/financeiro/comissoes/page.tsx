@@ -5,7 +5,9 @@ import { CommissionActionForm } from "@/components/commissions/commission-action
 import {
   cancelPartnerCommission,
   markCommissionPaid,
+  releasePartnerCommission,
   syncPartnerCommissions,
+  undoCommissionRelease,
   undoCommissionPayment,
 } from "@/lib/actions/commissions";
 import { requireAdmin } from "@/lib/authz";
@@ -24,6 +26,7 @@ type SearchParams = {
   dateFrom?: string;
   dateTo?: string;
   q?: string;
+  operationalStatus?: string;
 };
 
 const statusLabels: Record<CommissionStatus, string> = {
@@ -37,6 +40,22 @@ const statusBadgeClasses: Record<CommissionStatus, string> = {
   PAID: "bg-emerald-100 text-emerald-700",
   CANCELED: "bg-slate-100 text-slate-600",
 };
+
+const operationalLabels = {
+  forecast: "Prevista",
+  released: "Liberada",
+  paid: "Paga",
+  canceled: "Cancelada",
+};
+
+const operationalBadgeClasses = {
+  forecast: "bg-blue-100 text-blue-700",
+  released: "bg-emerald-100 text-emerald-700",
+  paid: "bg-slate-900 text-white",
+  canceled: "bg-slate-100 text-slate-600",
+};
+
+type OperationalStatusKey = keyof typeof operationalLabels;
 
 function formatCurrency(value: unknown) {
   return new Intl.NumberFormat("pt-BR", {
@@ -109,6 +128,11 @@ export default async function PartnerCommissionsPage({
     ? (params.status as CommissionStatus)
     : null;
   const search = params.q?.trim();
+  const operationalStatus = ["forecast", "released", "paid", "canceled"].includes(
+    params.operationalStatus ?? ""
+  )
+    ? params.operationalStatus
+    : "";
   const searchFilters: Prisma.PartnerCommissionWhereInput[] = search
     ? [
         {
@@ -166,6 +190,18 @@ export default async function PartnerCommissionsPage({
           },
         }),
     ...(searchFilters.length > 0 ? { OR: searchFilters } : {}),
+    ...(operationalStatus === "forecast"
+      ? { status: CommissionStatus.PENDING, releasedAt: null }
+      : {}),
+    ...(operationalStatus === "released"
+      ? { status: CommissionStatus.PENDING, releasedAt: { not: null } }
+      : {}),
+    ...(operationalStatus === "paid"
+      ? { status: CommissionStatus.PAID }
+      : {}),
+    ...(operationalStatus === "canceled"
+      ? { status: CommissionStatus.CANCELED }
+      : {}),
   };
 
   const commissions = await prisma.partnerCommission.findMany({
@@ -178,6 +214,12 @@ export default async function PartnerCommissionsPage({
         },
       },
       paidBy: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+      releasedBy: {
         select: {
           name: true,
           email: true,
@@ -211,11 +253,25 @@ export default async function PartnerCommissionsPage({
   const pendingCommissions = commissions.filter(
     (commission) => commission.status === CommissionStatus.PENDING
   );
+  const forecastCommissions = commissions.filter(
+    (commission) =>
+      commission.status === CommissionStatus.PENDING && !commission.releasedAt
+  );
+  const releasedCommissions = commissions.filter(
+    (commission) =>
+      commission.status === CommissionStatus.PENDING && commission.releasedAt
+  );
   const paidCommissions = commissions.filter(
     (commission) => commission.status === CommissionStatus.PAID
   );
+  const canceledCommissions = commissions.filter(
+    (commission) => commission.status === CommissionStatus.CANCELED
+  );
   const pendingTotal = sumBy(pendingCommissions, (commission) => commission.amount);
+  const forecastTotal = sumBy(forecastCommissions, (commission) => commission.amount);
+  const releasedTotal = sumBy(releasedCommissions, (commission) => commission.amount);
   const paidTotal = sumBy(paidCommissions, (commission) => commission.amount);
+  const canceledTotal = sumBy(canceledCommissions, (commission) => commission.amount);
   const totalInFilter = sumBy(commissions, (commission) => commission.amount);
   const pendingByPartner = new Map<string, { name: string; total: number }>();
 
@@ -234,10 +290,12 @@ export default async function PartnerCommissionsPage({
   )[0];
 
   const cards = [
-    { label: "Pendente", value: formatCurrency(pendingTotal) },
+    { label: "Previsto aguardando liberação", value: formatCurrency(forecastTotal) },
+    { label: "Liberado pendente", value: formatCurrency(releasedTotal) },
     { label: "Pago no filtro", value: formatCurrency(paidTotal) },
-    { label: "Qtd. pendentes", value: String(pendingCommissions.length) },
-    { label: "Qtd. pagas", value: String(paidCommissions.length) },
+    { label: "Cancelado", value: formatCurrency(canceledTotal) },
+    { label: "Qtd. previstas", value: String(forecastCommissions.length) },
+    { label: "Qtd. liberadas", value: String(releasedCommissions.length) },
     {
       label: "Maior pendência",
       value: topPendingPartner
@@ -253,7 +311,7 @@ export default async function PartnerCommissionsPage({
         <div>
           <h1 className="text-2xl font-semibold text-slate-950">Comissões</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Controle administrativo das comissões geradas por propostas aceitas.
+            Controle administrativo das comissões previstas, liberadas e pagas.
           </p>
           {!hasPeriodFilter ? (
             <p className="mt-2 text-sm text-slate-500">
@@ -285,7 +343,28 @@ export default async function PartnerCommissionsPage({
       </div>
 
       <form className="rounded-lg border border-slate-200 bg-white p-4">
-        <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-7">
+          <div>
+            <label
+              htmlFor="operationalStatus"
+              className="block text-sm font-medium text-slate-700"
+            >
+              Operacional
+            </label>
+            <select
+              id="operationalStatus"
+              name="operationalStatus"
+              defaultValue={operationalStatus}
+              className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2"
+            >
+              <option value="">Todas</option>
+              <option value="forecast">Previstas</option>
+              <option value="released">Liberadas</option>
+              <option value="paid">Pagas</option>
+              <option value="canceled">Canceladas</option>
+            </select>
+          </div>
+
           <div>
             <label
               htmlFor="status"
@@ -435,8 +514,11 @@ export default async function PartnerCommissionsPage({
                   "Parceiro",
                   "Status proposta",
                   "Status comissão",
+                  "Operacional",
                   "Lote",
                   "Valor",
+                  "Liberação",
+                  "Recebimento cliente",
                   "Criada em",
                   "Vencimento",
                   "Pagamento",
@@ -456,8 +538,18 @@ export default async function PartnerCommissionsPage({
             </thead>
 
             <tbody className="divide-y divide-slate-100">
-              {commissions.map((commission) => (
-                <tr key={commission.id} className="hover:bg-slate-50">
+              {commissions.map((commission) => {
+                const operationalStatusKey: OperationalStatusKey =
+                  commission.status === CommissionStatus.CANCELED
+                    ? "canceled"
+                    : commission.status === CommissionStatus.PAID
+                      ? "paid"
+                      : commission.releasedAt
+                        ? "released"
+                        : "forecast";
+
+                return (
+                  <tr key={commission.id} className="hover:bg-slate-50">
                   <td className="min-w-56 px-4 py-3 text-sm">
                     <Link
                       href={`/dashboard/propostas/${commission.proposal.id}`}
@@ -497,6 +589,15 @@ export default async function PartnerCommissionsPage({
                       {statusLabels[commission.status]}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-sm">
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${operationalBadgeClasses[operationalStatusKey]}`}
+                    >
+                      {operationalStatusKey === "forecast"
+                        ? "Aguardando recebimento"
+                        : operationalLabels[operationalStatusKey]}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-sm text-slate-700">
                     {commission.batch ? (
                       <Link
@@ -511,6 +612,15 @@ export default async function PartnerCommissionsPage({
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-900">
                     {formatCurrency(commission.amount)}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-700">
+                    {formatDate(commission.releasedAt)}
+                  </td>
+                  <td className="min-w-44 px-4 py-3 text-sm text-slate-700">
+                    <div>{formatDate(commission.clientFirstPaymentConfirmedAt)}</div>
+                    <div className="text-xs text-slate-500">
+                      {commission.clientPaymentReference || "-"}
+                    </div>
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-700">
                     {formatDate(commission.createdAt)}
@@ -532,15 +642,59 @@ export default async function PartnerCommissionsPage({
                   <td className="min-w-48 px-4 py-3 text-sm text-slate-700">
                     {commission.notes || "-"}
                   </td>
-                  <td className="min-w-72 px-4 py-3 text-sm">
-                    {commission.batch ? (
-                      <span className="text-sm text-slate-400">
-                        Gerenciada pelo lote
-                      </span>
+                    <td className="min-w-72 px-4 py-3 text-sm">
+                      {commission.batch ? (
+                        <span className="text-sm text-slate-400">
+                          Gerenciada pelo lote
+                        </span>
+                      ) : null}
+
+                    {!commission.batch &&
+                    commission.status === CommissionStatus.PENDING &&
+                    !commission.releasedAt ? (
+                      <div className="space-y-3">
+                        <CommissionActionForm
+                          action={releasePartnerCommission.bind(null, commission.id)}
+                          submitLabel="Liberar comissão"
+                          pendingLabel="Liberando..."
+                          variant="primary"
+                        >
+                          <div className="grid gap-2">
+                            <input
+                              name="clientFirstPaymentConfirmedAt"
+                              type="date"
+                              defaultValue={toDateInputValue(new Date())}
+                              className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+                            />
+                            <input
+                              name="clientPaymentReference"
+                              placeholder="Referência recebimento"
+                              className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+                            />
+                            <input
+                              name="releaseNotes"
+                              placeholder="Observação"
+                              className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+                            />
+                          </div>
+                        </CommissionActionForm>
+
+                        <CommissionActionForm
+                          action={cancelPartnerCommission.bind(
+                            null,
+                            commission.id
+                          )}
+                          submitLabel="Cancelar"
+                          pendingLabel="Cancelando..."
+                          variant="danger"
+                          confirmMessage="Cancelar esta comissão prevista?"
+                        />
+                      </div>
                     ) : null}
 
                     {!commission.batch &&
                     commission.status === CommissionStatus.PENDING ? (
+                    commission.releasedAt ? (
                       <div className="space-y-3">
                         <CommissionActionForm
                           action={markCommissionPaid.bind(null, commission.id)}
@@ -569,6 +723,14 @@ export default async function PartnerCommissionsPage({
                         </CommissionActionForm>
 
                         <CommissionActionForm
+                          action={undoCommissionRelease.bind(null, commission.id)}
+                          submitLabel="Reverter liberação"
+                          pendingLabel="Revertendo..."
+                          variant="secondary"
+                          confirmMessage="Reverter a liberação desta comissão?"
+                        />
+
+                        <CommissionActionForm
                           action={cancelPartnerCommission.bind(
                             null,
                             commission.id
@@ -579,6 +741,7 @@ export default async function PartnerCommissionsPage({
                           confirmMessage="Cancelar esta comissão pendente?"
                         />
                       </div>
+                    ) : null
                     ) : null}
 
                     {!commission.batch &&
@@ -600,12 +763,13 @@ export default async function PartnerCommissionsPage({
                     ) : null}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
 
               {commissions.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={14}
+                    colSpan={17}
                     className="px-4 py-10 text-center text-sm text-slate-500"
                   >
                     Nenhuma comissão encontrada para os filtros selecionados.

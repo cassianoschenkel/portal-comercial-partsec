@@ -36,6 +36,15 @@ function parsePaidAt(value: FormDataEntryValue | null) {
   return Number.isNaN(date.getTime()) ? new Date() : date;
 }
 
+function parseActionDate(value: FormDataEntryValue | null) {
+  if (typeof value !== "string" || !value) {
+    return new Date();
+  }
+
+  const date = new Date(`${value}T12:00:00`);
+  return Number.isNaN(date.getTime()) ? new Date() : date;
+}
+
 export async function syncPartnerCommissions(
   _state: CommissionActionState,
   _formData: FormData
@@ -65,6 +74,8 @@ export async function syncPartnerCommissions(
       partnerId: proposal.partnerId,
       amount: proposal.partnerCommission,
       status: CommissionStatus.PENDING,
+      releasedAt: null,
+      clientFirstPaymentConfirmedAt: null,
     })),
     skipDuplicates: true,
   });
@@ -88,6 +99,7 @@ export async function markCommissionPaid(
       id: true,
       status: true,
       batchId: true,
+      releasedAt: true,
     },
   });
 
@@ -107,6 +119,12 @@ export async function markCommissionPaid(
     return actionError("Esta comissão está vinculada a um lote. Use o lote para pagamento.");
   }
 
+  if (!commission.releasedAt) {
+    return actionError(
+      "A comissão ainda não foi liberada. Confirme primeiro o recebimento do pagamento do cliente."
+    );
+  }
+
   await prisma.partnerCommission.update({
     where: { id: commission.id },
     data: {
@@ -121,6 +139,118 @@ export async function markCommissionPaid(
 
   revalidatePath("/dashboard/financeiro/comissoes");
   return actionSuccess("Comissão marcada como paga.");
+}
+
+export async function releasePartnerCommission(
+  commissionId: string,
+  _state: CommissionActionState,
+  formData: FormData
+): Promise<CommissionActionState> {
+  const session = await requireAdmin();
+
+  const commission = await prisma.partnerCommission.findUnique({
+    where: { id: commissionId },
+    select: {
+      id: true,
+      status: true,
+      batch: { select: { status: true } },
+      releasedAt: true,
+    },
+  });
+
+  if (!commission) {
+    return actionError("Comissão não encontrada.");
+  }
+
+  if (commission.status === CommissionStatus.PAID) {
+    return actionError("Comissão paga não pode ser liberada novamente.");
+  }
+
+  if (commission.status === CommissionStatus.CANCELED) {
+    return actionError("Comissão cancelada não pode ser liberada.");
+  }
+
+  if (commission.batch?.status === "PAID") {
+    return actionError("Comissão vinculada a lote pago não pode ser alterada.");
+  }
+
+  if (commission.releasedAt) {
+    return actionError("Esta comissão já está liberada.");
+  }
+
+  const confirmedAt = parseActionDate(formData.get("clientFirstPaymentConfirmedAt"));
+  const clientPaymentReference =
+    String(formData.get("clientPaymentReference") || "").trim() || null;
+  const releaseNotes =
+    String(formData.get("releaseNotes") || "").trim() || null;
+
+  await prisma.partnerCommission.update({
+    where: { id: commission.id },
+    data: {
+      clientFirstPaymentConfirmedAt: confirmedAt,
+      clientFirstPaymentConfirmedById: session.user.id,
+      clientPaymentReference,
+      releasedAt: confirmedAt,
+      releasedById: session.user.id,
+      releaseNotes,
+    },
+  });
+
+  revalidatePath("/dashboard/financeiro/comissoes");
+  return actionSuccess("Comissão liberada para faturamento.");
+}
+
+export async function undoCommissionRelease(
+  commissionId: string,
+  _state: CommissionActionState,
+  _formData: FormData
+): Promise<CommissionActionState> {
+  await requireAdmin();
+
+  const commission = await prisma.partnerCommission.findUnique({
+    where: { id: commissionId },
+    select: {
+      id: true,
+      status: true,
+      batchId: true,
+      releasedAt: true,
+    },
+  });
+
+  if (!commission) {
+    return actionError("Comissão não encontrada.");
+  }
+
+  if (commission.status === CommissionStatus.PAID) {
+    return actionError("Comissão paga não pode ter liberação revertida.");
+  }
+
+  if (commission.status === CommissionStatus.CANCELED) {
+    return actionError("Comissão cancelada não pode ter liberação revertida.");
+  }
+
+  if (commission.batchId) {
+    return actionError("Comissão em lote não pode ter liberação revertida.");
+  }
+
+  if (!commission.releasedAt) {
+    return actionError("Esta comissão ainda não está liberada.");
+  }
+
+  await prisma.partnerCommission.update({
+    where: { id: commission.id },
+    data: {
+      clientFirstPaymentConfirmedAt: null,
+      clientFirstPaymentConfirmedById: null,
+      clientPaymentReference: null,
+      releasedAt: null,
+      releasedById: null,
+      releaseNotes: null,
+    },
+  });
+
+  revalidatePath("/dashboard/financeiro/comissoes");
+  return actionSuccess("Liberação revertida.");
 }
 
 export async function undoCommissionPayment(

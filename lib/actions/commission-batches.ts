@@ -82,6 +82,7 @@ export async function createCommissionBatch(
       where: {
         partnerId,
         status: CommissionStatus.PENDING,
+        releasedAt: { not: null },
         batchId: null,
         createdAt: {
           gte: periodStart,
@@ -130,7 +131,7 @@ export async function createCommissionBatch(
   });
 
   if (!result) {
-    return actionError("Nenhuma comissão pendente elegível encontrada no período.");
+    return actionError("Não há comissões liberadas para este parceiro/período.");
   }
 
   revalidatePath("/dashboard/financeiro/comissoes");
@@ -182,7 +183,10 @@ export async function payCommissionBatch(
     });
 
     await tx.partnerCommission.updateMany({
-      where: { batchId: batch.id },
+      where: {
+        batchId: batch.id,
+        releasedAt: { not: null },
+      },
       data: {
         status: CommissionStatus.PAID,
         paidAt,

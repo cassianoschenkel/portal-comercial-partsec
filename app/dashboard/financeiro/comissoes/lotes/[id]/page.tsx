@@ -251,6 +251,7 @@ export default async function CommissionBatchDetailsPage({
                 "Proposta",
                 "Cliente",
                 "Status proposta",
+                "Liberação",
                 "Status comissão",
                 "Valor",
                 "Ações",
@@ -287,6 +288,9 @@ export default async function CommissionBatchDetailsPage({
                   >
                     {formatProposalStatus(commission.proposal.status)}
                   </span>
+                </td>
+                <td className="px-4 py-3 text-sm text-slate-700">
+                  {formatDate(commission.releasedAt)}
                 </td>
                 <td className="px-4 py-3 text-sm text-slate-700">
                   {commission.status}
