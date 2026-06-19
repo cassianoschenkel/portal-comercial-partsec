@@ -20,6 +20,7 @@ export default async function DashboardPage() {
   const partnerId = getEffectivePartnerId(session);
 
   const whereFilter = isAdmin(session) ? {} : { partnerId: partnerId ?? "" };
+  const customerWhereFilter = { ...whereFilter };
   const proposalWhereFilter = { ...whereFilter, deletedAt: null };
 
   const [customersCount, proposalsCount, recentProposals] = await Promise.all([
