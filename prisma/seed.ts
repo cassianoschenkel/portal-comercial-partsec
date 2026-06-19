@@ -13,7 +13,7 @@ type PriceSeedRow = {
   plan: ProposalPlan;
   moduleType: ModuleType;
   unitType: UnitType;
-  rangeLabel: "S" | "M" | "L" | "XL";
+  rangeLabel: "MICRO" | "SMALL" | "MEDIUM" | "LARGE";
   minQuantity: number;
   maxQuantity: number;
   monthlyPrice: number;
@@ -22,17 +22,17 @@ type PriceSeedRow = {
 };
 
 const infraRanges = [
-  { rangeLabel: "S" as const, minQuantity: 0, maxQuantity: 10 },
-  { rangeLabel: "M" as const, minQuantity: 11, maxQuantity: 25 },
-  { rangeLabel: "L" as const, minQuantity: 26, maxQuantity: 50 },
-  { rangeLabel: "XL" as const, minQuantity: 51, maxQuantity: 100 },
+  { rangeLabel: "MICRO" as const, minQuantity: 1, maxQuantity: 10 },
+  { rangeLabel: "SMALL" as const, minQuantity: 11, maxQuantity: 25 },
+  { rangeLabel: "MEDIUM" as const, minQuantity: 26, maxQuantity: 75 },
+  { rangeLabel: "LARGE" as const, minQuantity: 76, maxQuantity: 150 },
 ];
 
 const endpointRanges = [
-  { rangeLabel: "S" as const, minQuantity: 0, maxQuantity: 25 },
-  { rangeLabel: "M" as const, minQuantity: 26, maxQuantity: 75 },
-  { rangeLabel: "L" as const, minQuantity: 76, maxQuantity: 150 },
-  { rangeLabel: "XL" as const, minQuantity: 151, maxQuantity: 300 },
+  { rangeLabel: "MICRO" as const, minQuantity: 1, maxQuantity: 25 },
+  { rangeLabel: "SMALL" as const, minQuantity: 26, maxQuantity: 150 },
+  { rangeLabel: "MEDIUM" as const, minQuantity: 151, maxQuantity: 500 },
+  { rangeLabel: "LARGE" as const, minQuantity: 501, maxQuantity: 1000 },
 ];
 
 const cloudRanges = endpointRanges;
@@ -42,7 +42,7 @@ function buildRows(params: {
   moduleType: ModuleType;
   unitType: UnitType;
   ranges: ReadonlyArray<{
-    rangeLabel: "S" | "M" | "L" | "XL";
+    rangeLabel: "MICRO" | "SMALL" | "MEDIUM" | "LARGE";
     minQuantity: number;
     maxQuantity: number;
   }>;
@@ -68,72 +68,72 @@ const priceRows: PriceSeedRow[] = [
     moduleType: ModuleType.INFRASTRUCTURE,
     unitType: UnitType.ASSET,
     ranges: infraRanges,
-    monthlyPrices: [297, 397, 497, 597],
-    setupPrices: [400, 650, 1000, 1500],
+    monthlyPrices: [497, 797, 1297, 1997],
+    setupPrices: [400, 700, 1200, 1800],
   }),
   ...buildRows({
     plan: ProposalPlan.PROFESSIONAL,
     moduleType: ModuleType.INFRASTRUCTURE,
     unitType: UnitType.ASSET,
     ranges: infraRanges,
-    monthlyPrices: [597, 697, 897, 1097],
-    setupPrices: [400, 650, 1000, 1500],
+    monthlyPrices: [497, 797, 1297, 1997],
+    setupPrices: [400, 700, 1200, 1800],
   }),
   ...buildRows({
     plan: ProposalPlan.ADVANCED,
     moduleType: ModuleType.INFRASTRUCTURE,
     unitType: UnitType.ASSET,
     ranges: infraRanges,
-    monthlyPrices: [1097, 1297, 1597, 1997],
-    setupPrices: [400, 650, 1000, 1500],
+    monthlyPrices: [497, 797, 1297, 1997],
+    setupPrices: [400, 700, 1200, 1800],
   }),
   ...buildRows({
     plan: ProposalPlan.BASIC,
     moduleType: ModuleType.ENDPOINT_SECURITY,
     unitType: UnitType.ENDPOINT,
     ranges: endpointRanges,
-    monthlyPrices: [497, 697, 997, 1297],
-    setupPrices: [500, 750, 1100, 1600],
+    monthlyPrices: [297, 497, 997, 1797],
+    setupPrices: [300, 500, 1000, 1800],
   }),
   ...buildRows({
     plan: ProposalPlan.PROFESSIONAL,
     moduleType: ModuleType.ENDPOINT_SECURITY,
     unitType: UnitType.ENDPOINT,
     ranges: endpointRanges,
-    monthlyPrices: [797, 1097, 1497, 1997],
-    setupPrices: [600, 900, 1300, 1800],
+    monthlyPrices: [297, 497, 997, 1797],
+    setupPrices: [300, 500, 1000, 1800],
   }),
   ...buildRows({
     plan: ProposalPlan.ADVANCED,
     moduleType: ModuleType.ENDPOINT_SECURITY,
     unitType: UnitType.ENDPOINT,
     ranges: endpointRanges,
-    monthlyPrices: [1197, 1597, 2197, 2897],
-    setupPrices: [700, 1000, 1500, 2000],
+    monthlyPrices: [297, 497, 997, 1797],
+    setupPrices: [300, 500, 1000, 1800],
   }),
   ...buildRows({
     plan: ProposalPlan.BASIC,
     moduleType: ModuleType.CLOUD_SERVICES,
     unitType: UnitType.USER,
     ranges: cloudRanges,
-    monthlyPrices: [397, 597, 797, 1097],
-    setupPrices: [450, 700, 1000, 1400],
+    monthlyPrices: [247, 397, 797, 1397],
+    setupPrices: [250, 400, 800, 1400],
   }),
   ...buildRows({
     plan: ProposalPlan.PROFESSIONAL,
     moduleType: ModuleType.CLOUD_SERVICES,
     unitType: UnitType.USER,
     ranges: cloudRanges,
-    monthlyPrices: [697, 897, 1197, 1597],
-    setupPrices: [550, 800, 1150, 1550],
+    monthlyPrices: [247, 397, 797, 1397],
+    setupPrices: [250, 400, 800, 1400],
   }),
   ...buildRows({
     plan: ProposalPlan.ADVANCED,
     moduleType: ModuleType.CLOUD_SERVICES,
     unitType: UnitType.USER,
     ranges: cloudRanges,
-    monthlyPrices: [997, 1297, 1697, 2297],
-    setupPrices: [650, 900, 1300, 1700],
+    monthlyPrices: [247, 397, 797, 1397],
+    setupPrices: [250, 400, 800, 1400],
   }),
 ];
 

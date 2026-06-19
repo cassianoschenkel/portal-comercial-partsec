@@ -175,6 +175,22 @@ export async function calculateProposalPricing(
     );
 
     if (!priceRow) {
+      const modulePriceRows = activePriceRows.filter((row) => {
+        return row.moduleType === module.moduleType;
+      });
+      const maxAutomaticQuantity = Math.max(
+        ...modulePriceRows.map((row) => row.maxQuantity)
+      );
+
+      if (
+        Number.isFinite(maxAutomaticQuantity) &&
+        module.quantity > maxAutomaticQuantity
+      ) {
+        throw new Error(
+          `${MODULE_LABELS[module.moduleType]} acima do limite de precificação automática. Trate como Enterprise/Special (sob consulta).`
+        );
+      }
+
       throw new Error(
         `Não existe tabela de preço ativa para ${MODULE_LABELS[module.moduleType]} na quantidade informada.`
       );
