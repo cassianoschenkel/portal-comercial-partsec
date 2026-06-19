@@ -1,24 +1,34 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage:
-#   COMMISSION_DOCUMENTS_DIR=/var/lib/partsec/portal-comercial/commission-documents ./scripts/backup-commission-documents.sh
-#
-# Optional:
-#   BACKUP_DIR=/var/backups/partsec/documents ./scripts/backup-commission-documents.sh
+APP_DIR="/var/www/portal-comercial-partsec"
+BACKUP_BASE_DIR="${BACKUP_BASE_DIR:-/var/backups/partsec/portal-comercial}"
 
-DOCUMENTS_DIR="${COMMISSION_DOCUMENTS_DIR:-./storage/commission-documents}"
-BACKUP_DIR="${BACKUP_DIR:-./backups/commission-documents}"
-TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
-OUTPUT_FILE="${BACKUP_DIR}/commission-documents-${TIMESTAMP}.tar.gz"
+cd "$APP_DIR"
 
-if [[ ! -d "${DOCUMENTS_DIR}" ]]; then
-  echo "Documents directory not found: ${DOCUMENTS_DIR}" >&2
-  exit 1
+if [ -f .env ]; then
+  set -a
+  source .env
+  set +a
 fi
 
-mkdir -p "${BACKUP_DIR}"
+DOCUMENTS_DIR="${COMMISSION_DOCUMENTS_DIR:-/var/lib/partsec/portal-comercial/commission-documents}"
 
-tar -czf "${OUTPUT_FILE}" -C "$(dirname "${DOCUMENTS_DIR}")" "$(basename "${DOCUMENTS_DIR}")"
+if [ ! -d "$DOCUMENTS_DIR" ]; then
+  echo "Diretório de documentos não encontrado: $DOCUMENTS_DIR"
+  echo "Nada para backup."
+  exit 0
+fi
 
-echo "Commission documents backup created: ${OUTPUT_FILE}"
+BACKUP_DIR="$BACKUP_BASE_DIR/$(date +%F_%H%M%S)"
+mkdir -p "$BACKUP_DIR"
+
+BACKUP_FILE="$BACKUP_DIR/commission-documents.tar.gz"
+
+echo "==> Gerando backup dos documentos em:"
+echo "$BACKUP_FILE"
+
+tar -czf "$BACKUP_FILE" -C "$(dirname "$DOCUMENTS_DIR")" "$(basename "$DOCUMENTS_DIR")"
+
+echo "Backup dos documentos concluído:"
+ls -lh "$BACKUP_FILE"
