@@ -24,7 +24,7 @@ export default async function DashboardPage() {
 
   const [customersCount, proposalsCount, recentProposals] = await Promise.all([
     prisma.customer.count({
-      where: proposalWhereFilter,
+      where: customerWhereFilter,
     }),
     prisma.proposal.count({
       where: proposalWhereFilter,
