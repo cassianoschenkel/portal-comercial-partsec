@@ -24,12 +24,15 @@ export async function Topbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="hidden text-right sm:block">
+          <Link
+            href="/dashboard/minha-conta"
+            className="hidden rounded-md px-2 py-1 text-right hover:bg-slate-100 sm:block"
+          >
             <p className="text-sm font-semibold text-slate-950">
               {session?.user.name}
             </p>
             <p className="text-xs text-slate-500">{session?.user.email}</p>
-          </div>
+          </Link>
           <LogoutButton />
         </div>
       </div>

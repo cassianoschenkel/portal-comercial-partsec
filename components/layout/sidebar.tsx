@@ -18,6 +18,7 @@ export async function Sidebar() {
     { href: "/dashboard", label: "Dashboard" },
     { href: "/dashboard/clientes", label: "Clientes" },
     { href: "/dashboard/propostas", label: "Propostas" },
+    { href: "/dashboard/minha-conta", label: "Minha conta" },
   ];
 
   const adminItems: NavItem[] =
