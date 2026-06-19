@@ -21,6 +21,7 @@ export default async function PrintProposalPage({
   const proposal = await prisma.proposal.findFirst({
     where: {
       id,
+      deletedAt: null,
       ...(isAdmin(session) ? {} : { partnerId: partnerId ?? "" }),
     },
     include: {

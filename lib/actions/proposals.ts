@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
+  canDeleteProposal,
   getEffectivePartnerId,
   getRequiredSession,
   isAdmin,
@@ -15,6 +16,16 @@ import {
 import { prisma } from "@/lib/prisma";
 import { calculateProposalPricing } from "@/lib/pricing";
 import { proposalSchema } from "@/lib/validations/proposal";
+
+export type DeleteProposalState = {
+  success: boolean;
+  error: string | null;
+  message: string | null;
+};
+
+function deleteProposalError(error: string): DeleteProposalState {
+  return { success: false, error, message: null };
+}
 
 function parseModulesFromFormData(formData: FormData) {
   const modulesJson = formData.get("modulesJson");
@@ -218,7 +229,7 @@ export async function acceptProposal(formData: FormData) {
   }
 
   await prisma.proposal.update({
-    where: { id: proposalId },
+    where: { id: proposalId, deletedAt: null },
     data: {
       status: ProposalStatus.ACCEPTED,
       acceptedByName,
@@ -241,6 +252,7 @@ export async function updateProposalStatus(
   const proposal = await prisma.proposal.findFirst({
     where: {
       id,
+      deletedAt: null,
       ...(isAdmin(session)
         ? {}
         : { partnerId: requirePartnerScope(session) }),
@@ -259,4 +271,83 @@ export async function updateProposalStatus(
 
   revalidatePath(`/dashboard/propostas/${id}`);
   revalidatePath("/dashboard/propostas");
+}
+
+export async function softDeleteProposal(
+  id: string,
+  _state: DeleteProposalState,
+  _formData: FormData
+): Promise<DeleteProposalState> {
+  const session = await getRequiredSession();
+
+  if (!canDeleteProposal(session)) {
+    return deleteProposalError("Você não tem permissão para excluir propostas.");
+  }
+
+  const proposal = await prisma.proposal.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      partnerId: true,
+      status: true,
+      deletedAt: true,
+    },
+  });
+
+  if (!proposal) {
+    return deleteProposalError("Proposta não encontrada.");
+  }
+
+  const partnerId = getEffectivePartnerId(session);
+  if (!isAdmin(session) && proposal.partnerId !== partnerId) {
+    return deleteProposalError(
+      "Você não tem permissão para excluir propostas de outro parceiro."
+    );
+  }
+
+  if (proposal.deletedAt) {
+    return deleteProposalError("Esta proposta já foi excluída.");
+  }
+
+  if (proposal.status !== ProposalStatus.CANCELLED) {
+    return deleteProposalError(
+      "Somente propostas canceladas podem ser excluídas."
+    );
+  }
+
+  try {
+    const result = await prisma.proposal.updateMany({
+      where: {
+        id: proposal.id,
+        status: ProposalStatus.CANCELLED,
+        deletedAt: null,
+        ...(!isAdmin(session) ? { partnerId: partnerId ?? "" } : {}),
+      },
+      data: {
+        deletedAt: new Date(),
+        deletedById: session.user.id,
+      },
+    });
+
+    if (result.count === 0) {
+      return deleteProposalError(
+        "A proposta foi alterada. Atualize a página e tente novamente."
+      );
+    }
+  } catch {
+    return deleteProposalError(
+      "Não foi possível excluir a proposta. Tente novamente."
+    );
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/propostas");
+  revalidatePath(`/dashboard/propostas/${proposal.id}`);
+  revalidatePath("/proposta");
+
+  return {
+    success: true,
+    error: null,
+    message: "Proposta excluída com sucesso.",
+  };
 }

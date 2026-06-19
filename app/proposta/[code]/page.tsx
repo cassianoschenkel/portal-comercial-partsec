@@ -25,8 +25,8 @@ export default async function PublicProposalPage({
     notFound();
   }
 
-  const proposal = await prisma.proposal.findUnique({
-    where: { proposalNumber },
+  const proposal = await prisma.proposal.findFirst({
+    where: { proposalNumber, deletedAt: null },
     include: {
       customer: true,
       partner: true,

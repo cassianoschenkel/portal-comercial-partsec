@@ -113,6 +113,7 @@ export default async function FinancialDashboardPage({
   });
 
   const where: Prisma.ProposalWhereInput = {
+    deletedAt: null,
     createdAt: {
       gte: dateFrom,
       lte: dateTo,

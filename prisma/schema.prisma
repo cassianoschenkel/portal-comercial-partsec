@@ -84,6 +84,7 @@ model User {
   isActive                          Boolean                              @default(true)
   partner                           Partner?                             @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   createdProposals                  Proposal[]                           @relation("ProposalCreatedBy")
+  deletedProposals                  Proposal[]                           @relation("ProposalDeletedBy")
   createdInvitations                UserInvitation[]                     @relation("UserInvitationCreatedBy")
   canceledInvitations               UserInvitation[]                     @relation("UserInvitationCanceledBy")
   paidCommissions                   PartnerCommission[]                  @relation("PartnerCommissionPaidBy")
@@ -219,6 +220,9 @@ model Proposal {
   customer                    Customer           @relation(fields: [customerId], references: [id], onDelete: Restrict)
   partner                     Partner            @relation(fields: [partnerId], references: [id], onDelete: Restrict)
   createdBy                   User?              @relation("ProposalCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  deletedAt                   DateTime?
+  deletedById                 String?
+  deletedBy                   User?              @relation("ProposalDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
   items                       ProposalItem[]
   commission                  PartnerCommission?
   createdAt                   DateTime           @default(now())
@@ -227,6 +231,8 @@ model Proposal {
   @@index([partnerId])
   @@index([createdById])
   @@index([status])
+  @@index([deletedAt])
+  @@index([deletedById])
 }
 
 model PartnerCommission {

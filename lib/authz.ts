@@ -74,6 +74,10 @@ export function canUpdateProposal(session: Session) {
   return canWriteCommercialData(session);
 }
 
+export function canDeleteProposal(session: Session) {
+  return isAdmin(session) || isPartnerAdmin(session);
+}
+
 export function canCreateCustomer(session: Session) {
   return canWriteCommercialData(session);
 }

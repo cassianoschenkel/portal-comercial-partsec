@@ -53,6 +53,7 @@ export async function syncPartnerCommissions(
 
   const proposals = await prisma.proposal.findMany({
     where: {
+      deletedAt: null,
       status: ProposalStatus.ACCEPTED,
       partnerCommission: { gt: 0 },
       commission: null,

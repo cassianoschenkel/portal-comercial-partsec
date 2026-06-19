@@ -22,6 +22,7 @@ export async function GET(
   const proposal = await prisma.proposal.findFirst({
     where: {
       id,
+      deletedAt: null,
       ...(isAdmin(session) ? {} : { partnerId: partnerId ?? "" }),
     },
     include: {

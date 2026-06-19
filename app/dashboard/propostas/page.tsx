@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { ProposalsTable } from "@/components/proposals/proposals-table";
 import {
+  canDeleteProposal,
   canCreateProposal,
   getEffectivePartnerId,
   getRequiredSession,
@@ -13,9 +14,13 @@ export default async function ProposalsPage() {
   const session = await getRequiredSession();
   const partnerId = getEffectivePartnerId(session);
   const canCreate = canCreateProposal(session);
+  const canDelete = canDeleteProposal(session);
 
   const proposals = await prisma.proposal.findMany({
-    where: isAdmin(session) ? {} : { partnerId: partnerId ?? "" },
+    where: {
+      deletedAt: null,
+      ...(isAdmin(session) ? {} : { partnerId: partnerId ?? "" }),
+    },
     include: {
       customer: {
         select: {
@@ -48,7 +53,7 @@ export default async function ProposalsPage() {
         ) : null}
       </div>
 
-      <ProposalsTable proposals={proposals} />
+      <ProposalsTable proposals={proposals} canDelete={canDelete} />
     </div>
   );
 }

@@ -1,5 +1,7 @@
 import Link from "next/link";
+import type { ProposalStatus } from "@prisma/client";
 
+import { DeleteProposalButton } from "@/components/proposals/delete-proposal-button";
 import {
   formatProposalNumber,
   formatProposalPlan,
@@ -15,7 +17,7 @@ type ProposalRow = {
   activeCount: number;
   total: unknown;
   partnerCommissionValue: unknown;
-  status: string;
+  status: ProposalStatus;
   createdAt: Date;
   customer: {
     companyName: string;
@@ -29,7 +31,13 @@ function formatCurrency(value: unknown) {
   }).format(Number(value));
 }
 
-export function ProposalsTable({ proposals }: { proposals: ProposalRow[] }) {
+export function ProposalsTable({
+  proposals,
+  canDelete,
+}: {
+  proposals: ProposalRow[];
+  canDelete: boolean;
+}) {
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <table className="min-w-full divide-y divide-slate-200">
@@ -106,13 +114,18 @@ export function ProposalsTable({ proposals }: { proposals: ProposalRow[] }) {
                 </span>
               </td>
 
-              <td className="px-4 py-3 text-right">
-                <Link
-                  href={`/dashboard/propostas/${proposal.id}`}
-                  className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  Ver
-                </Link>
+              <td className="px-4 py-3">
+                <div className="flex justify-end gap-2">
+                  <Link
+                    href={`/dashboard/propostas/${proposal.id}`}
+                    className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    Ver
+                  </Link>
+                  {canDelete && proposal.status === "CANCELLED" ? (
+                    <DeleteProposalButton proposalId={proposal.id} />
+                  ) : null}
+                </div>
               </td>
             </tr>
           ))}

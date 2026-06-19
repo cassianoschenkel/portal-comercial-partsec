@@ -20,13 +20,14 @@ export default async function DashboardPage() {
   const partnerId = getEffectivePartnerId(session);
 
   const whereFilter = isAdmin(session) ? {} : { partnerId: partnerId ?? "" };
+  const proposalWhereFilter = { ...whereFilter, deletedAt: null };
 
   const [customersCount, proposalsCount, recentProposals] = await Promise.all([
     prisma.customer.count({
-      where: whereFilter,
+      where: proposalWhereFilter,
     }),
     prisma.proposal.count({
-      where: whereFilter,
+      where: proposalWhereFilter,
     }),
     prisma.proposal.findMany({
       where: whereFilter,
