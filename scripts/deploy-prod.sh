@@ -7,21 +7,14 @@ APP_NAME="portal-comercial"
 cd "$APP_DIR"
 
 echo "==> Portal Comercial Partsec - Deploy de produção"
-echo "==> Diretório: $APP_DIR"
-echo "==> App PM2: $APP_NAME"
-
-echo "==> Conferindo working tree"
-if ! git diff --quiet || ! git diff --cached --quiet; then
-  echo "Existem alterações locais não commitadas. Abortando deploy por segurança."
-  git status --short
-  exit 1
-fi
 
 echo "==> Criando backup do banco antes do deploy"
-if [ -f scripts/backup-db.sh ]; then
+if [ -f scripts/backup-postgres.sh ]; then
+  bash scripts/backup-postgres.sh
+elif [ -f scripts/backup-db.sh ]; then
   bash scripts/backup-db.sh
 else
-  echo "scripts/backup-db.sh não encontrado. Abortando deploy por segurança."
+  echo "Nenhum script de backup do banco encontrado. Abortando deploy por segurança."
   exit 1
 fi
 
@@ -58,13 +51,9 @@ npx prisma migrate deploy
 
 echo "==> Atualizando tabela de preços, se habilitado"
 if [ "${DEPLOY_UPDATE_PRICING:-0}" = "1" ]; then
-  if npm run | grep -q "pricing:update"; then
-    npm run pricing:update
-  else
-    echo "Script pricing:update não encontrado. Pulando."
-  fi
+  npm run pricing:update
 else
-  echo "DEPLOY_UPDATE_PRICING não está habilitado. Pulando atualização de preços."
+  echo "DEPLOY_UPDATE_PRICING não habilitado. Pulando atualização de preços."
 fi
 
 echo "==> Build"
@@ -78,13 +67,9 @@ echo "==> Status PM2"
 pm2 status "$APP_NAME"
 
 echo "==> Healthcheck local"
-if command -v curl >/dev/null 2>&1; then
-  curl -fsS http://localhost:3000/api/health || {
-    echo "Healthcheck local falhou."
-    exit 1
-  }
-else
-  echo "curl não encontrado. Pulando healthcheck."
-fi
+curl -fsS http://localhost:3000/api/health || {
+  echo "Healthcheck local falhou."
+  exit 1
+}
 
 echo "Deploy concluído com sucesso."
