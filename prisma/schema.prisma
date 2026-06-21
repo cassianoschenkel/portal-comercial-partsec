@@ -71,6 +71,53 @@ enum UnitType {
   TENANT
 }
 
+enum GeneralProposalStatus {
+  DRAFT
+  INTERNAL_REVIEW
+  APPROVED
+  SENT
+  NEGOTIATION
+  WON
+  LOST
+  CANCELLED
+  EXPIRED
+}
+
+enum GeneralProposalType {
+  NEW_SALE
+  RENEWAL
+  UPGRADE
+  REPLACEMENT
+  EXPANSION
+  IMPLEMENTATION
+  PROJECT
+  OTHER
+}
+
+enum GeneralPricingMode {
+  MARGIN
+  MARKUP
+  MANUAL
+}
+
+enum GeneralServicePricingMode {
+  HOURLY
+  FIXED
+  MANUAL
+}
+
+enum GeneralProposalServiceType {
+  IMPLEMENTATION
+  MIGRATION
+  CONFIGURATION
+  TRAINING
+  CONSULTING
+  HEALTH_CHECK
+  SUPPORT_HOURS
+  PROJECT_MANAGEMENT
+  OTHER
+}
+
 model User {
   id                                String                               @id @default(cuid())
   name                              String
@@ -85,6 +132,9 @@ model User {
   partner                           Partner?                             @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   createdProposals                  Proposal[]                           @relation("ProposalCreatedBy")
   deletedProposals                  Proposal[]                           @relation("ProposalDeletedBy")
+  createdGeneralProposals           GeneralProposal[]                    @relation("GeneralProposalCreatedBy")
+  deletedGeneralProposals           GeneralProposal[]                    @relation("GeneralProposalDeletedBy")
+  generalProposalStatusChanges      GeneralProposalStatusHistory[]       @relation("GeneralProposalStatusChangedBy")
   createdInvitations                UserInvitation[]                     @relation("UserInvitationCreatedBy")
   canceledInvitations               UserInvitation[]                     @relation("UserInvitationCanceledBy")
   paidCommissions                   PartnerCommission[]                  @relation("PartnerCommissionPaidBy")
@@ -173,9 +223,10 @@ model Customer {
   partnerId String?
   partner   Partner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
 
-  proposals Proposal[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  proposals        Proposal[]
+  generalProposals GeneralProposal[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   @@index([companyName])
   @@index([contactEmail])
@@ -405,4 +456,158 @@ model PriceTable {
   @@unique([plan, moduleType, minQuantity, maxQuantity], name: "PriceTable_plan_moduleType_minQuantity_maxQuantity_key")
   @@index([plan, moduleType, active])
   @@index([unitType])
+}
+
+model Vendor {
+  id                   String                @id @default(cuid())
+  name                 String
+  slug                 String                @unique
+  logoUrl              String?
+  websiteUrl           String?
+  category             String?
+  shortDescription     String?
+  aboutText            String?               @db.Text
+  internalNotes        String?               @db.Text
+  isActive             Boolean               @default(true)
+  generalProposals     GeneralProposal[]     @relation("GeneralProposalPrimaryVendor")
+  generalProposalItems GeneralProposalItem[] @relation("GeneralProposalItemVendor")
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+
+  @@index([name])
+  @@index([isActive])
+}
+
+model GeneralProposal {
+  id                 String                         @id @default(cuid())
+  proposalNumber     String                         @unique
+  title              String
+  customerId         String
+  vendorId           String
+  createdByUserId    String
+  status             GeneralProposalStatus          @default(DRAFT)
+  proposalType       GeneralProposalType            @default(NEW_SALE)
+  currency           String                         @default("BRL")
+  licenseTermMonths  Int?
+  validUntil         DateTime?
+  paymentTerms       String?                        @db.Text
+  executiveSummary   String?                        @db.Text
+  projectScope       String?                        @db.Text
+  commercialNotes    String?                        @db.Text
+  internalNotes      String?                        @db.Text
+  subtotalProducts   Decimal                        @default(0) @db.Decimal(12, 2)
+  subtotalServices   Decimal                        @default(0) @db.Decimal(12, 2)
+  totalCost          Decimal                        @default(0) @db.Decimal(12, 2)
+  totalSalePrice     Decimal                        @default(0) @db.Decimal(12, 2)
+  totalDiscount      Decimal                        @default(0) @db.Decimal(12, 2)
+  finalPrice         Decimal                        @default(0) @db.Decimal(12, 2)
+  grossProfit        Decimal                        @default(0) @db.Decimal(12, 2)
+  grossMarginPercent Decimal                        @default(0) @db.Decimal(10, 4)
+  markupPercent      Decimal                        @default(0) @db.Decimal(10, 4)
+  sentAt             DateTime?
+  approvedAt         DateTime?
+  closedAt           DateTime?
+  deletedAt          DateTime?
+  deletedById        String?
+  customer           Customer                       @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  vendor             Vendor                         @relation("GeneralProposalPrimaryVendor", fields: [vendorId], references: [id], onDelete: Restrict)
+  createdBy          User                           @relation("GeneralProposalCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  deletedBy          User?                          @relation("GeneralProposalDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+  items              GeneralProposalItem[]
+  services           GeneralProposalService[]
+  statusHistory      GeneralProposalStatusHistory[]
+  createdAt          DateTime                       @default(now())
+  updatedAt          DateTime                       @updatedAt
+
+  @@index([customerId])
+  @@index([vendorId])
+  @@index([createdByUserId])
+  @@index([status])
+  @@index([proposalType])
+  @@index([deletedAt])
+  @@index([deletedById])
+  @@index([createdAt])
+}
+
+model GeneralProposalStatusHistory {
+  id              String                 @id @default(cuid())
+  proposalId      String
+  fromStatus      GeneralProposalStatus?
+  toStatus        GeneralProposalStatus
+  changedByUserId String
+  notes           String?                @db.Text
+  createdAt       DateTime               @default(now())
+  proposal        GeneralProposal        @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  changedBy       User                   @relation("GeneralProposalStatusChangedBy", fields: [changedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([proposalId])
+  @@index([changedByUserId])
+  @@index([toStatus])
+  @@index([createdAt])
+}
+
+model GeneralProposalItem {
+  id                 String             @id @default(cuid())
+  proposalId         String
+  vendorId           String?
+  sku                String?
+  productName        String
+  description        String?            @db.Text
+  category           String?
+  quantity           Decimal            @default(1) @db.Decimal(12, 2)
+  licenseTermMonths  Int?
+  costUnitPrice      Decimal            @default(0) @db.Decimal(12, 2)
+  listUnitPrice      Decimal            @default(0) @db.Decimal(12, 2)
+  pricingMode        GeneralPricingMode @default(MARGIN)
+  marginPercent      Decimal            @default(0) @db.Decimal(10, 4)
+  markupPercent      Decimal            @default(0) @db.Decimal(10, 4)
+  discountPercent    Decimal            @default(0) @db.Decimal(10, 4)
+  saleUnitPrice      Decimal            @default(0) @db.Decimal(12, 2)
+  totalCost          Decimal            @default(0) @db.Decimal(12, 2)
+  totalSalePrice     Decimal            @default(0) @db.Decimal(12, 2)
+  totalDiscount      Decimal            @default(0) @db.Decimal(12, 2)
+  finalItemPrice     Decimal            @default(0) @db.Decimal(12, 2)
+  grossProfit        Decimal            @default(0) @db.Decimal(12, 2)
+  grossMarginPercent Decimal            @default(0) @db.Decimal(10, 4)
+  isVisibleToClient  Boolean            @default(true)
+  internalNotes      String?            @db.Text
+  sortOrder          Int                @default(0)
+  proposal           GeneralProposal    @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  vendor             Vendor?            @relation("GeneralProposalItemVendor", fields: [vendorId], references: [id], onDelete: Restrict)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([proposalId])
+  @@index([vendorId])
+  @@index([sku])
+  @@index([productName])
+  @@index([sortOrder])
+}
+
+model GeneralProposalService {
+  id                 String                     @id @default(cuid())
+  proposalId         String
+  serviceName        String
+  description        String?                    @db.Text
+  serviceType        GeneralProposalServiceType @default(OTHER)
+  pricingMode        GeneralServicePricingMode  @default(FIXED)
+  estimatedHours     Decimal                    @default(0) @db.Decimal(12, 2)
+  internalHourlyCost Decimal                    @default(0) @db.Decimal(12, 2)
+  saleHourlyRate     Decimal                    @default(0) @db.Decimal(12, 2)
+  fixedCost          Decimal                    @default(0) @db.Decimal(12, 2)
+  fixedSalePrice     Decimal                    @default(0) @db.Decimal(12, 2)
+  totalCost          Decimal                    @default(0) @db.Decimal(12, 2)
+  totalSalePrice     Decimal                    @default(0) @db.Decimal(12, 2)
+  grossProfit        Decimal                    @default(0) @db.Decimal(12, 2)
+  grossMarginPercent Decimal                    @default(0) @db.Decimal(10, 4)
+  isVisibleToClient  Boolean                    @default(true)
+  internalNotes      String?                    @db.Text
+  sortOrder          Int                        @default(0)
+  proposal           GeneralProposal            @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  @@index([proposalId])
+  @@index([serviceType])
+  @@index([sortOrder])
 }

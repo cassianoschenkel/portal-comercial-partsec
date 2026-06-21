@@ -32,6 +32,14 @@ export async function Sidebar() {
             href: "/dashboard/financeiro/comissoes/relatorios",
             label: "Relatórios de Comissões",
           },
+          {
+            href: "/dashboard/comercial/propostas-gerais",
+            label: "Propostas Gerais",
+          },
+          {
+            href: "/dashboard/comercial/fabricantes",
+            label: "Fabricantes",
+          },
         ]
       : [];
 
@@ -59,13 +67,19 @@ export async function Sidebar() {
       <div className="px-4 py-6">
         <nav className="space-y-2">
           {items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="block rounded-md px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950"
-            >
-              {item.label}
-            </Link>
+            <div key={item.href}>
+              {item.href === "/dashboard/comercial/propostas-gerais" ? (
+                <p className="mb-2 mt-5 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Comercial
+                </p>
+              ) : null}
+              <Link
+                href={item.href}
+                className="block rounded-md px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-950"
+              >
+                {item.label}
+              </Link>
+            </div>
           ))}
         </nav>
       </div>

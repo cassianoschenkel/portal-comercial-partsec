@@ -137,6 +137,73 @@ const priceRows: PriceSeedRow[] = [
   }),
 ];
 
+const vendorRows = [
+  {
+    name: "Sophos",
+    slug: "sophos",
+    category: "Cybersecurity",
+    shortDescription: "Soluções de segurança para endpoints, redes e nuvem.",
+    aboutText:
+      "Fabricante de soluções de cybersecurity. Este texto pode ser editado no cadastro do fabricante.",
+  },
+  {
+    name: "Veeam",
+    slug: "veeam",
+    category: "Backup e recuperação",
+    shortDescription: "Soluções de proteção, backup e recuperação de dados.",
+    aboutText:
+      "Fabricante de soluções de proteção de dados. Este texto pode ser editado no cadastro do fabricante.",
+  },
+  {
+    name: "Arcserve",
+    slug: "arcserve",
+    category: "Backup e recuperação",
+    shortDescription: "Soluções de backup, continuidade e recuperação de dados.",
+    aboutText:
+      "Fabricante de soluções de continuidade de negócios. Este texto pode ser editado no cadastro do fabricante.",
+  },
+  {
+    name: "Fortinet",
+    slug: "fortinet",
+    category: "Cybersecurity",
+    shortDescription: "Soluções integradas de segurança de redes e infraestrutura.",
+    aboutText:
+      "Fabricante de soluções integradas de cybersecurity. Este texto pode ser editado no cadastro do fabricante.",
+  },
+  {
+    name: "Check Point",
+    slug: "check-point",
+    category: "Cybersecurity",
+    shortDescription: "Soluções de segurança para redes, nuvem e usuários.",
+    aboutText:
+      "Fabricante de soluções de prevenção e proteção contra ameaças. Este texto pode ser editado no cadastro do fabricante.",
+  },
+  {
+    name: "SonicWall",
+    slug: "sonicwall",
+    category: "Cybersecurity",
+    shortDescription: "Soluções de segurança de rede e proteção contra ameaças.",
+    aboutText:
+      "Fabricante de soluções de segurança de rede. Este texto pode ser editado no cadastro do fabricante.",
+  },
+  {
+    name: "Acronis",
+    slug: "acronis",
+    category: "Cyber Protection",
+    shortDescription: "Soluções integradas de backup e proteção cibernética.",
+    aboutText:
+      "Fabricante de soluções de cyber protection. Este texto pode ser editado no cadastro do fabricante.",
+  },
+  {
+    name: "Microsoft",
+    slug: "microsoft",
+    category: "Cloud e produtividade",
+    shortDescription: "Soluções de nuvem, produtividade, infraestrutura e segurança.",
+    aboutText:
+      "Fabricante de soluções de tecnologia e serviços em nuvem. Este texto pode ser editado no cadastro do fabricante.",
+  },
+] as const;
+
 async function main() {
   const adminPasswordHash = await bcrypt.hash("admin123", 12);
 
@@ -196,6 +263,17 @@ async function main() {
       notes: "Parceiro pediu retorno apos apresentacao comercial.",
     },
   });
+
+  for (const vendor of vendorRows) {
+    await prisma.vendor.upsert({
+      where: { slug: vendor.slug },
+      update: {},
+      create: {
+        ...vendor,
+        isActive: true,
+      },
+    });
+  }
 
   await prisma.priceTable.deleteMany();
   await prisma.priceTable.createMany({

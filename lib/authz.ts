@@ -78,6 +78,10 @@ export function canDeleteProposal(session: Session) {
   return isAdmin(session) || isPartnerAdmin(session);
 }
 
+export function canAccessGeneralProposals(session: Session) {
+  return isAdmin(session);
+}
+
 export function canCreateCustomer(session: Session) {
   return canWriteCommercialData(session);
 }
@@ -142,6 +146,12 @@ export function requireCanCreateProposal(session: Session) {
 
 export function requireCanUpdateProposal(session: Session) {
   if (!canUpdateProposal(session)) {
+    notFound();
+  }
+}
+
+export function requireCanAccessGeneralProposals(session: Session) {
+  if (!canAccessGeneralProposals(session)) {
     notFound();
   }
 }
