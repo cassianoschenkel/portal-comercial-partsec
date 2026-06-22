@@ -424,7 +424,7 @@ export function GeneralProposalPDF({ data }: { data: GeneralProposalPdfData }) {
 	) : null}
 
         {data.services.length > 0 ? (
-          <View style={styles.section}>
+          <View style={styles.section} wrap={false}>
             <Text style={styles.sectionTitle}>Serviços ofertados</Text>
             <View style={styles.table}>
               <View style={styles.tableHeader}>
@@ -433,7 +433,7 @@ export function GeneralProposalPDF({ data }: { data: GeneralProposalPdfData }) {
                 ))}
               </View>
               {data.services.map((service) => (
-                <View key={service.id} style={styles.tableRow}>
+                <View key={service.id} style={styles.tableRow} wrap={false}>
                   <Text style={[styles.tableCell, { width: serviceColumns[0] }]}>{service.serviceName}</Text>
                   <Text style={[styles.tableCell, { width: serviceColumns[1] }]}>{service.description || "—"}</Text>
                   <Text style={[styles.tableCell, { width: serviceColumns[2] }]}>{serviceTypeLabels[service.serviceType] || service.serviceType}</Text>
