@@ -10,7 +10,10 @@ import {
 } from "@/lib/authz";
 import { generateGeneralProposalNumber } from "@/lib/general-proposals/numbering";
 import { prisma } from "@/lib/prisma";
-import { createGeneralProposalSchema } from "@/lib/validations/general-proposal";
+import {
+  createGeneralProposalSchema,
+  updateGeneralProposalSchema,
+} from "@/lib/validations/general-proposal";
 import { updateGeneralProposalStatusSchema } from "@/lib/validations/general-proposal-status";
 
 export type GeneralProposalActionState = {
@@ -127,6 +130,83 @@ export async function createGeneralProposal(
 
   revalidatePath("/dashboard/comercial/propostas-gerais");
   redirect(`/dashboard/comercial/propostas-gerais/${proposalId}`);
+}
+
+export async function updateGeneralProposal(
+  _state: GeneralProposalActionState,
+  formData: FormData
+): Promise<GeneralProposalActionState> {
+  const session = await getRequiredSession();
+  requireCanAccessGeneralProposals(session);
+
+  const parsed = updateGeneralProposalSchema.safeParse({
+    proposalId: formData.get("proposalId"),
+    vendorId: formData.get("vendorId"),
+    proposalType: formData.get("proposalType"),
+    title: formData.get("title"),
+    licenseTermMonths: formData.get("licenseTermMonths"),
+    validUntil: formData.get("validUntil"),
+    paymentTerms: formData.get("paymentTerms"),
+    executiveSummary: formData.get("executiveSummary"),
+    projectScope: formData.get("projectScope"),
+    commercialNotes: formData.get("commercialNotes"),
+    internalNotes: formData.get("internalNotes"),
+  });
+
+  if (!parsed.success) {
+    return actionError(parsed.error.issues[0]?.message ?? "Dados inválidos.");
+  }
+
+  const [proposal, vendor] = await Promise.all([
+    prisma.generalProposal.findUnique({
+      where: { id: parsed.data.proposalId },
+      select: { id: true, vendorId: true, deletedAt: true },
+    }),
+    prisma.vendor.findUnique({
+      where: { id: parsed.data.vendorId },
+      select: { id: true, isActive: true },
+    }),
+  ]);
+
+  if (!proposal || proposal.deletedAt) {
+    return actionError("Proposta geral não encontrada ou excluída.");
+  }
+
+  if (!vendor) {
+    return actionError("Fabricante não encontrado.");
+  }
+
+  if (!vendor.isActive && vendor.id !== proposal.vendorId) {
+    return actionError("O fabricante selecionado está inativo.");
+  }
+
+  try {
+    const updated = await prisma.generalProposal.updateMany({
+      where: { id: proposal.id, deletedAt: null },
+      data: {
+        title: parsed.data.title,
+        vendorId: vendor.id,
+        proposalType: parsed.data.proposalType,
+        licenseTermMonths: parsed.data.licenseTermMonths ?? null,
+        validUntil: parsed.data.validUntil ?? null,
+        paymentTerms: parsed.data.paymentTerms ?? null,
+        executiveSummary: parsed.data.executiveSummary ?? null,
+        projectScope: parsed.data.projectScope ?? null,
+        commercialNotes: parsed.data.commercialNotes ?? null,
+        internalNotes: parsed.data.internalNotes ?? null,
+      },
+    });
+
+    if (updated.count !== 1) {
+      return actionError("A proposta foi excluída durante a edição. Atualize a página.");
+    }
+  } catch {
+    return actionError("Não foi possível atualizar a proposta geral.");
+  }
+
+  revalidatePath("/dashboard/comercial/propostas-gerais");
+  revalidatePath(`/dashboard/comercial/propostas-gerais/${proposal.id}`);
+  redirect(`/dashboard/comercial/propostas-gerais/${proposal.id}`);
 }
 
 export async function updateGeneralProposalStatus(

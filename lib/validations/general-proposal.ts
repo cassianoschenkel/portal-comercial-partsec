@@ -48,3 +48,9 @@ export const createGeneralProposalSchema = z.object({
   commercialNotes: optionalString(),
   internalNotes: optionalString(),
 });
+
+export const updateGeneralProposalSchema = createGeneralProposalSchema
+  .omit({ customerId: true, currency: true })
+  .extend({
+    proposalId: z.string().trim().min(1, "Proposta é obrigatória."),
+  });
