@@ -209,6 +209,113 @@ export async function updateGeneralProposal(
   redirect(`/dashboard/comercial/propostas-gerais/${proposal.id}`);
 }
 
+export async function cloneGeneralProposal(proposalId: string) {
+  const session = await getRequiredSession();
+  requireCanAccessGeneralProposals(session);
+
+  const original = await prisma.generalProposal.findFirst({
+    where: { id: proposalId, deletedAt: null },
+    include: {
+      customer: true,
+      vendor: true,
+      items: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      },
+      services: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      },
+    },
+  });
+
+  if (!original) {
+    throw new Error("Proposta geral não encontrada ou excluída.");
+  }
+
+  const proposal = await prisma.$transaction(async (tx) => {
+    const proposalNumber = await generateGeneralProposalNumber(tx);
+
+    return tx.generalProposal.create({
+      data: {
+        proposalNumber,
+        status: GeneralProposalStatus.DRAFT,
+        title: `${original.title} (cópia)`,
+        customerId: original.customerId,
+        vendorId: original.vendorId,
+        createdByUserId: session.user.id,
+        proposalType: original.proposalType,
+        currency: original.currency,
+        licenseTermMonths: original.licenseTermMonths,
+        validUntil: original.validUntil,
+        paymentTerms: original.paymentTerms,
+        executiveSummary: original.executiveSummary,
+        projectScope: original.projectScope,
+        commercialNotes: original.commercialNotes,
+        internalNotes: original.internalNotes,
+        subtotalProducts: original.subtotalProducts,
+        subtotalServices: original.subtotalServices,
+        totalCost: original.totalCost,
+        totalSalePrice: original.totalSalePrice,
+        totalDiscount: original.totalDiscount,
+        finalPrice: original.finalPrice,
+        grossProfit: original.grossProfit,
+        grossMarginPercent: original.grossMarginPercent,
+        markupPercent: original.markupPercent,
+        items: {
+          create: original.items.map((item) => ({
+            vendorId: item.vendorId,
+            sku: item.sku,
+            productName: item.productName,
+            description: item.description,
+            category: item.category,
+            quantity: item.quantity,
+            licenseTermMonths: item.licenseTermMonths,
+            costUnitPrice: item.costUnitPrice,
+            listUnitPrice: item.listUnitPrice,
+            pricingMode: item.pricingMode,
+            marginPercent: item.marginPercent,
+            markupPercent: item.markupPercent,
+            discountPercent: item.discountPercent,
+            saleUnitPrice: item.saleUnitPrice,
+            totalCost: item.totalCost,
+            totalSalePrice: item.totalSalePrice,
+            totalDiscount: item.totalDiscount,
+            finalItemPrice: item.finalItemPrice,
+            grossProfit: item.grossProfit,
+            grossMarginPercent: item.grossMarginPercent,
+            isVisibleToClient: item.isVisibleToClient,
+            internalNotes: item.internalNotes,
+            sortOrder: item.sortOrder,
+          })),
+        },
+        services: {
+          create: original.services.map((service) => ({
+            serviceName: service.serviceName,
+            description: service.description,
+            serviceType: service.serviceType,
+            pricingMode: service.pricingMode,
+            estimatedHours: service.estimatedHours,
+            internalHourlyCost: service.internalHourlyCost,
+            saleHourlyRate: service.saleHourlyRate,
+            fixedCost: service.fixedCost,
+            fixedSalePrice: service.fixedSalePrice,
+            totalCost: service.totalCost,
+            totalSalePrice: service.totalSalePrice,
+            grossProfit: service.grossProfit,
+            grossMarginPercent: service.grossMarginPercent,
+            isVisibleToClient: service.isVisibleToClient,
+            internalNotes: service.internalNotes,
+            sortOrder: service.sortOrder,
+          })),
+        },
+      },
+      select: { id: true },
+    });
+  });
+
+  revalidatePath("/dashboard/comercial/propostas-gerais");
+  redirect(`/dashboard/comercial/propostas-gerais/${proposal.id}`);
+}
+
 export async function updateGeneralProposalStatus(
   _state: GeneralProposalActionState,
   formData: FormData

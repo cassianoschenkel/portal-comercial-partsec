@@ -273,6 +273,80 @@ export async function updateProposalStatus(
   revalidatePath("/dashboard/propostas");
 }
 
+export async function cloneProposal(proposalId: string) {
+  const session = await getRequiredSession();
+  requireCanCreateProposal(session);
+
+  const original = await prisma.proposal.findFirst({
+    where: {
+      id: proposalId,
+      deletedAt: null,
+      ...(isAdmin(session)
+        ? {}
+        : { partnerId: requirePartnerScope(session) }),
+    },
+    include: {
+      items: {
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
+
+  if (!original) {
+    throw new Error("Proposta não encontrada ou sem permissão de acesso.");
+  }
+
+  const proposal = await prisma.proposal.create({
+    data: {
+      customerId: original.customerId,
+      partnerId: original.partnerId,
+      createdById: session.user.id,
+      title: `${original.title} (cópia)`,
+      status: ProposalStatus.DRAFT,
+      plan: original.plan,
+      activeCount: original.activeCount,
+      unitPrice: original.unitPrice,
+      setupFee: original.setupFee,
+      partnerCommissionSetupValue: original.partnerCommissionSetupValue,
+      subtotal: original.subtotal,
+      discountPercent: original.discountPercent,
+      discountValue: original.discountValue,
+      total: original.total,
+      partnerCommissionPercent: original.partnerCommissionPercent,
+      partnerCommissionValue: original.partnerCommissionValue,
+      notes: original.notes,
+      scopeDescription: original.scopeDescription,
+      monthlySubtotal: original.monthlySubtotal,
+      setupSubtotal: original.setupSubtotal,
+      discountAmount: original.discountAmount,
+      finalMonthlyPrice: original.finalMonthlyPrice,
+      finalSetupPrice: original.finalSetupPrice,
+      firstMonthTotal: original.firstMonthTotal,
+      partnerCommissionPct: original.partnerCommissionPct,
+      partnerCommission: original.partnerCommission,
+      partsecNetRevenue: original.partsecNetRevenue,
+      validityDays: original.validityDays,
+      internalNotes: original.internalNotes,
+      items: {
+        create: original.items.map((item) => ({
+          moduleType: item.moduleType,
+          unitType: item.unitType,
+          description: item.description,
+          quantity: item.quantity,
+          rangeLabel: item.rangeLabel,
+          monthlyPrice: item.monthlyPrice,
+          setupPrice: item.setupPrice,
+        })),
+      },
+    },
+    select: { id: true },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/propostas");
+  redirect(`/dashboard/propostas/${proposal.id}`);
+}
+
 export async function softDeleteProposal(
   id: string,
   _state: DeleteProposalState,

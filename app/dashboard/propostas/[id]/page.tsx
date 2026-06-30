@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { CloneProposalButton } from "@/components/proposals/clone-proposal-button";
 import { CopyPublicLinkButton } from "@/components/proposals/copy-public-link-button";
 import { DeleteProposalButton } from "@/components/proposals/delete-proposal-button";
 import { ProposalActions } from "@/components/proposals/proposal-actions";
 import { ProposalPreview } from "@/components/proposals/proposal-preview";
 import {
   canDeleteProposal,
+  canCreateProposal,
   canUpdateProposal,
   getEffectivePartnerId,
   getRequiredSession,
@@ -22,6 +24,7 @@ export default async function ProposalDetailsPage({
 }) {
   const session = await getRequiredSession();
   const partnerId = getEffectivePartnerId(session);
+  const canClone = canCreateProposal(session);
   const canUpdate = canUpdateProposal(session);
   const canDelete = canDeleteProposal(session);
 
@@ -80,6 +83,8 @@ export default async function ProposalDetailsPage({
           >
             Baixar PDF
           </Link>
+
+          {canClone ? <CloneProposalButton proposalId={proposal.id} /> : null}
 
           {canUpdate ? (
             <ProposalActions

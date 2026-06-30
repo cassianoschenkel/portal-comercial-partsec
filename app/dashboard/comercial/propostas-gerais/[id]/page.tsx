@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GeneralProposalStatus } from "@prisma/client";
 
+import { CloneGeneralProposalButton } from "@/components/general-proposals/clone-general-proposal-button";
 import { GeneralProposalItemsSection } from "@/components/general-proposals/general-proposal-items-section";
 import { GeneralProposalInternalSummary } from "@/components/general-proposals/general-proposal-internal-summary";
 import { GeneralProposalServicesSection } from "@/components/general-proposals/general-proposal-services-section";
@@ -126,6 +127,7 @@ export default async function GeneralProposalDetailsPage({
           >
             Editar dados da proposta
           </Link>
+          <CloneGeneralProposalButton proposalId={proposal.id} />
           <Link href="/dashboard/comercial/propostas-gerais" className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
             Voltar à listagem
           </Link>
