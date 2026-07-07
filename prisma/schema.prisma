@@ -106,6 +106,23 @@ enum GeneralServicePricingMode {
   MANUAL
 }
 
+enum AssessmentStatus {
+  DRAFT
+  SENT
+  IN_PROGRESS
+  SUBMITTED
+  CANCELLED
+  EXPIRED
+}
+
+enum AssessmentType {
+  POC
+  IMPLEMENTATION
+  COMMERCIAL_SCOPING
+  RENEWAL
+  OTHER
+}
+
 enum GeneralProposalServiceType {
   IMPLEMENTATION
   MIGRATION
@@ -133,6 +150,7 @@ model User {
   createdProposals                  Proposal[]                           @relation("ProposalCreatedBy")
   deletedProposals                  Proposal[]                           @relation("ProposalDeletedBy")
   createdGeneralProposals           GeneralProposal[]                    @relation("GeneralProposalCreatedBy")
+  createdAssessments                Assessment[]                         @relation("AssessmentCreatedBy")
   deletedGeneralProposals           GeneralProposal[]                    @relation("GeneralProposalDeletedBy")
   generalProposalStatusChanges      GeneralProposalStatusHistory[]       @relation("GeneralProposalStatusChangedBy")
   createdInvitations                UserInvitation[]                     @relation("UserInvitationCreatedBy")
@@ -178,6 +196,7 @@ model Partner {
   commissions              PartnerCommission[]
   commissionBatches        PartnerCommissionBatch[]
   commissionStatements     PartnerCommissionStatement[]
+  assessments              Assessment[]
   createdAt                DateTime                     @default(now())
   updatedAt                DateTime                     @updatedAt
 
@@ -225,6 +244,7 @@ model Customer {
 
   proposals        Proposal[]
   generalProposals GeneralProposal[]
+  assessments      Assessment[]
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
@@ -437,6 +457,41 @@ model ProposalItem {
 
   @@index([proposalId])
   @@index([moduleType])
+}
+
+model Assessment {
+  id               String           @id @default(cuid())
+  customerId       String
+  partnerId        String?
+  createdByUserId  String
+  title            String
+  type             AssessmentType   @default(POC)
+  status           AssessmentStatus @default(DRAFT)
+  tokenHash        String?          @unique
+  tokenNonce       String?          @unique
+  tokenExpiresAt   DateTime?
+  firstAccessedAt  DateTime?
+  submittedAt      DateTime?
+  submittedByName  String?
+  submittedByEmail String?
+  submittedByPhone String?
+  answers          Json?
+  internalNotes    String?          @db.Text
+  customer         Customer         @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  partner          Partner?         @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  createdBy        User             @relation("AssessmentCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([customerId])
+  @@index([partnerId])
+  @@index([createdByUserId])
+  @@index([status])
+  @@index([type])
+  @@index([tokenHash])
+  @@index([tokenExpiresAt])
+  @@index([submittedAt])
+  @@index([createdAt])
 }
 
 model PriceTable {

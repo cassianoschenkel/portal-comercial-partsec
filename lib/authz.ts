@@ -90,6 +90,14 @@ export function canUpdateCustomer(session: Session) {
   return canWriteCommercialData(session);
 }
 
+export function canCreateAssessment(session: Session) {
+  return canWriteCommercialData(session);
+}
+
+export function canManageAssessmentLink(session: Session) {
+  return canWriteCommercialData(session);
+}
+
 export function getCurrentUserId(session: Session) {
   return session.user.id;
 }
@@ -164,6 +172,18 @@ export function requireCanCreateCustomer(session: Session) {
 
 export function requireCanUpdateCustomer(session: Session) {
   if (!canUpdateCustomer(session)) {
+    notFound();
+  }
+}
+
+export function requireCanCreateAssessment(session: Session) {
+  if (!canCreateAssessment(session)) {
+    notFound();
+  }
+}
+
+export function requireCanManageAssessmentLink(session: Session) {
+  if (!canManageAssessmentLink(session)) {
     notFound();
   }
 }
