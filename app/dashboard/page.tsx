@@ -31,7 +31,7 @@ export default async function DashboardPage() {
       where: proposalWhereFilter,
     }),
     prisma.proposal.findMany({
-      where: whereFilter,
+      where: proposalWhereFilter,
       include: {
         customer: {
           select: {
