@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 import {
   PROPOSAL_MODULE_OPTIONS,
@@ -19,6 +19,10 @@ type ProposalModuleRow = {
   id: string;
   moduleType: ProposalModuleOptionValue;
   quantity: string;
+  pricingMode: "AUTO" | "MANUAL";
+  manualMonthlyPrice: string;
+  manualSetupPrice: string;
+  pricingJustification: string;
 };
 
 type Props = {
@@ -35,6 +39,10 @@ function createModuleRow(
     id: `${moduleType}-${Math.random().toString(36).slice(2, 10)}`,
     moduleType,
     quantity: "",
+    pricingMode: "AUTO",
+    manualMonthlyPrice: "",
+    manualSetupPrice: "",
+    pricingJustification: "",
   };
 }
 
@@ -55,7 +63,13 @@ export function ProposalForm({ customers, action }: Props) {
 
   function updateModule(
     rowId: string,
-    field: "moduleType" | "quantity",
+    field:
+      | "moduleType"
+      | "quantity"
+      | "pricingMode"
+      | "manualMonthlyPrice"
+      | "manualSetupPrice"
+      | "pricingJustification",
     value: string
   ) {
     setModules((current) =>
@@ -112,6 +126,27 @@ export function ProposalForm({ customers, action }: Props) {
       return false;
     }
 
+    const invalidManualPricing = modules.find((module) => {
+      if (module.pricingMode !== "MANUAL") {
+        return false;
+      }
+
+      return (
+        module.manualMonthlyPrice === "" ||
+        Number(module.manualMonthlyPrice) < 0 ||
+        module.manualSetupPrice === "" ||
+        Number(module.manualSetupPrice) < 0 ||
+        !module.pricingJustification.trim()
+      );
+    });
+
+    if (invalidManualPricing) {
+      setModuleError(
+        "Para preço customizado, informe mensalidade, setup e justificativa interna."
+      );
+      return false;
+    }
+
     setModuleError(null);
     return true;
   }
@@ -120,6 +155,19 @@ export function ProposalForm({ customers, action }: Props) {
     modules.map((module) => ({
       moduleType: module.moduleType,
       quantity: Number(module.quantity || 0),
+      pricingMode: module.pricingMode,
+      manualMonthlyPrice:
+        module.pricingMode === "MANUAL" && module.manualMonthlyPrice !== ""
+          ? Number(module.manualMonthlyPrice)
+          : undefined,
+      manualSetupPrice:
+        module.pricingMode === "MANUAL" && module.manualSetupPrice !== ""
+          ? Number(module.manualSetupPrice)
+          : undefined,
+      pricingJustification:
+        module.pricingMode === "MANUAL"
+          ? module.pricingJustification.trim()
+          : undefined,
     }))
   );
 
@@ -256,6 +304,9 @@ export function ProposalForm({ customers, action }: Props) {
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Unidade
                 </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Precificação
+                </th>
                 <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Ação
                 </th>
@@ -267,60 +318,160 @@ export function ProposalForm({ customers, action }: Props) {
                 const currentOption = getProposalModuleOption(module.moduleType);
 
                 return (
-                  <tr key={module.id}>
-                    <td className="px-4 py-3">
-                      <select
-                        value={module.moduleType}
-                        onChange={(event) =>
-                          updateModule(
-                            module.id,
-                            "moduleType",
-                            event.target.value
-                          )
-                        }
-                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-                      >
-                        {PROPOSAL_MODULE_OPTIONS.filter((option) => {
-                          return (
-                            option.value === module.moduleType ||
-                            !selectedModuleTypes.has(option.value)
-                          );
-                        }).map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
+                  <Fragment key={module.id}>
+                      <tr>
+                        <td className="px-4 py-3">
+                          <select
+                            value={module.moduleType}
+                            onChange={(event) =>
+                              updateModule(
+                                module.id,
+                                "moduleType",
+                                event.target.value
+                              )
+                            }
+                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                          >
+                            {PROPOSAL_MODULE_OPTIONS.filter((option) => {
+                              return (
+                                option.value === module.moduleType ||
+                                !selectedModuleTypes.has(option.value)
+                              );
+                            }).map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
 
-                    <td className="px-4 py-3">
-                      <input
-                        type="number"
-                        min={1}
-                        required
-                        value={module.quantity}
-                        onChange={(event) =>
-                          updateModule(module.id, "quantity", event.target.value)
-                        }
-                        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-                        placeholder="Informe a quantidade"
-                      />
-                    </td>
+                        <td className="px-4 py-3">
+                          <input
+                            type="number"
+                            min={1}
+                            required
+                            value={module.quantity}
+                            onChange={(event) =>
+                              updateModule(
+                                module.id,
+                                "quantity",
+                                event.target.value
+                              )
+                            }
+                            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                            placeholder="Informe a quantidade"
+                          />
+                        </td>
 
-                    <td className="px-4 py-3 text-sm text-slate-700">
-                      {currentOption?.unitLabel ?? "-"}
-                    </td>
+                        <td className="px-4 py-3 text-sm text-slate-700">
+                          {currentOption?.unitLabel ?? "-"}
+                        </td>
 
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => removeModule(module.id)}
-                        className="rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-                      >
-                        Remover
-                      </button>
-                    </td>
-                  </tr>
+                        <td className="px-4 py-3">
+                          <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                            <input
+                              type="checkbox"
+                              checked={module.pricingMode === "MANUAL"}
+                              onChange={(event) =>
+                                updateModule(
+                                  module.id,
+                                  "pricingMode",
+                                  event.target.checked ? "MANUAL" : "AUTO"
+                                )
+                              }
+                              className="h-4 w-4 rounded border-slate-300 text-slate-900"
+                            />
+                            Usar preço customizado
+                          </label>
+                        </td>
+
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => removeModule(module.id)}
+                            className="rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                          >
+                            Remover
+                          </button>
+                        </td>
+                      </tr>
+
+                      {module.pricingMode === "MANUAL" ? (
+                        <tr key={`${module.id}-manual`}>
+                          <td colSpan={5} className="bg-amber-50 px-4 py-4">
+                            <div className="grid gap-4 md:grid-cols-3">
+                              <div>
+                                <label className="block text-sm font-medium text-amber-950">
+                                  Preço mensal customizado
+                                </label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  value={module.manualMonthlyPrice}
+                                  onChange={(event) =>
+                                    updateModule(
+                                      module.id,
+                                      "manualMonthlyPrice",
+                                      event.target.value
+                                    )
+                                  }
+                                  className="mt-2 w-full rounded-md border border-amber-300 bg-white px-3 py-2 text-sm"
+                                  placeholder="0,00"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-medium text-amber-950">
+                                  Setup customizado
+                                </label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  value={module.manualSetupPrice}
+                                  onChange={(event) =>
+                                    updateModule(
+                                      module.id,
+                                      "manualSetupPrice",
+                                      event.target.value
+                                    )
+                                  }
+                                  className="mt-2 w-full rounded-md border border-amber-300 bg-white px-3 py-2 text-sm"
+                                  placeholder="0,00"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-medium text-amber-950">
+                                  Justificativa interna da precificação
+                                </label>
+                                <textarea
+                                  value={module.pricingJustification}
+                                  onChange={(event) =>
+                                    updateModule(
+                                      module.id,
+                                      "pricingJustification",
+                                      event.target.value
+                                    )
+                                  }
+                                  rows={3}
+                                  className="mt-2 w-full rounded-md border border-amber-300 bg-white px-3 py-2 text-sm"
+                                />
+                              </div>
+                            </div>
+
+                            <p className="mt-3 text-sm text-amber-800">
+                              Use preço customizado quando a quantidade de
+                              ativos não refletir a complexidade operacional do
+                              ambiente, como clientes enterprise, alto volume de
+                              logs, alta criticidade ou necessidade de
+                              acompanhamento diferenciado.
+                            </p>
+                          </td>
+                        </tr>
+                      ) : null}
+                  </Fragment>
                 );
               })}
             </tbody>

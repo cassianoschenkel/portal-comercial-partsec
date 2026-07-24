@@ -71,6 +71,11 @@ enum UnitType {
   TENANT
 }
 
+enum ProposalItemPricingMode {
+  AUTO
+  MANUAL
+}
+
 enum GeneralProposalStatus {
   DRAFT
   INTERNAL_REVIEW
@@ -442,21 +447,26 @@ model PartnerCommissionStatementDocument {
 }
 
 model ProposalItem {
-  id           String     @id @default(cuid())
-  proposalId   String
-  moduleType   ModuleType
-  unitType     UnitType
-  description  String?
-  quantity     Int
-  rangeLabel   String
-  monthlyPrice Decimal    @db.Decimal(10, 2)
-  setupPrice   Decimal    @db.Decimal(10, 2)
-  proposal     Proposal   @relation(fields: [proposalId], references: [id], onDelete: Cascade)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id                   String                  @id @default(cuid())
+  proposalId           String
+  moduleType           ModuleType
+  unitType             UnitType
+  description          String?
+  quantity             Int
+  rangeLabel           String
+  monthlyPrice         Decimal                 @db.Decimal(10, 2)
+  setupPrice           Decimal                 @db.Decimal(10, 2)
+  pricingMode          ProposalItemPricingMode @default(AUTO)
+  manualMonthlyPrice   Decimal?                @db.Decimal(10, 2)
+  manualSetupPrice     Decimal?                @db.Decimal(10, 2)
+  pricingJustification String?                 @db.Text
+  proposal             Proposal                @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
 
   @@index([proposalId])
   @@index([moduleType])
+  @@index([pricingMode])
 }
 
 model Assessment {

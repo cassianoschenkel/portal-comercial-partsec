@@ -11,7 +11,7 @@
 //});
 
 ///export type ProposalInput = z.infer<typeof proposalSchema>;
-import { ModuleType, ProposalPlan } from "@prisma/client";
+import { ModuleType, ProposalItemPricingMode, ProposalPlan } from "@prisma/client";
 import { z } from "zod";
 
 const emptyToUndefined = (value: unknown) => {
@@ -25,6 +25,52 @@ const emptyToUndefined = (value: unknown) => {
 const proposalModuleSchema = z.object({
   moduleType: z.nativeEnum(ModuleType),
   quantity: z.coerce.number().int().positive("Quantidade deve ser maior que zero."),
+  pricingMode: z.nativeEnum(ProposalItemPricingMode).default(ProposalItemPricingMode.AUTO),
+  manualMonthlyPrice: z.preprocess(
+    emptyToUndefined,
+    z.coerce.number().optional()
+  ),
+  manualSetupPrice: z.preprocess(
+    emptyToUndefined,
+    z.coerce.number().optional()
+  ),
+  pricingJustification: z.preprocess(emptyToUndefined, z.string().trim().optional()),
+}).superRefine((data, ctx) => {
+  if (data.pricingMode !== ProposalItemPricingMode.MANUAL) {
+    return;
+  }
+
+  if (
+    data.manualMonthlyPrice === undefined ||
+    !Number.isFinite(data.manualMonthlyPrice) ||
+    data.manualMonthlyPrice < 0
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Preço mensal customizado deve ser maior ou igual a zero.",
+      path: ["manualMonthlyPrice"],
+    });
+  }
+
+  if (
+    data.manualSetupPrice === undefined ||
+    !Number.isFinite(data.manualSetupPrice) ||
+    data.manualSetupPrice < 0
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Setup customizado deve ser maior ou igual a zero.",
+      path: ["manualSetupPrice"],
+    });
+  }
+
+  if (!data.pricingJustification) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Justificativa interna obrigatória para preço customizado.",
+      path: ["pricingJustification"],
+    });
+  }
 });
 
 export const proposalSchema = z.object({

@@ -1,6 +1,7 @@
 import {
   ModuleType,
   PriceTable,
+  ProposalItemPricingMode,
   ProposalPlan,
   UnitType,
   UserRole,
@@ -29,6 +30,10 @@ const MODULE_UNIT_TYPES: Record<ModuleType, UnitType> = {
 export type PricingModuleInput = {
   moduleType: ModuleType;
   quantity: number;
+  pricingMode?: ProposalItemPricingMode | "AUTO" | "MANUAL";
+  manualMonthlyPrice?: number | null;
+  manualSetupPrice?: number | null;
+  pricingJustification?: string | null;
 };
 
 export type CalculateProposalPricingInput = {
@@ -48,6 +53,10 @@ export type CalculatedProposalItem = {
   rangeLabel: string;
   monthlyPrice: number;
   setupPrice: number;
+  pricingMode: ProposalItemPricingMode;
+  manualMonthlyPrice: number | null;
+  manualSetupPrice: number | null;
+  pricingJustification: string | null;
 };
 
 export type CalculatedProposalPricing = {
@@ -129,6 +138,29 @@ function findMatchingPriceRow(
   });
 }
 
+function normalizePricingMode(
+  value?: ProposalItemPricingMode | "AUTO" | "MANUAL"
+) {
+  return String(value ?? ProposalItemPricingMode.AUTO) ===
+    ProposalItemPricingMode.MANUAL
+    ? ProposalItemPricingMode.MANUAL
+    : ProposalItemPricingMode.AUTO;
+}
+
+function normalizeManualPrice(value: number | null | undefined, field: string) {
+  if (value === null || value === undefined) {
+    throw new Error(`${field} é obrigatório para preço customizado.`);
+  }
+
+  const normalized = roundCurrency(Number(value));
+
+  if (!Number.isFinite(normalized) || normalized < 0) {
+    throw new Error(`${field} deve ser maior ou igual a zero.`);
+  }
+
+  return normalized;
+}
+
 export async function calculateProposalPricing(
   input: CalculateProposalPricingInput
 ): Promise<CalculatedProposalPricing> {
@@ -167,6 +199,7 @@ export async function calculateProposalPricing(
 
   const items = input.modules.map((module) => {
     assertPositiveQuantity(module.moduleType, module.quantity);
+    const pricingMode = normalizePricingMode(module.pricingMode);
 
     const priceRow = findMatchingPriceRow(
       activePriceRows,
@@ -174,7 +207,7 @@ export async function calculateProposalPricing(
       module.quantity
     );
 
-    if (!priceRow) {
+    if (!priceRow && pricingMode === ProposalItemPricingMode.AUTO) {
       const modulePriceRows = activePriceRows.filter((row) => {
         return row.moduleType === module.moduleType;
       });
@@ -196,6 +229,44 @@ export async function calculateProposalPricing(
       );
     }
 
+    if (pricingMode === ProposalItemPricingMode.MANUAL) {
+      const manualMonthlyPrice = normalizeManualPrice(
+        module.manualMonthlyPrice,
+        "Preço mensal customizado"
+      );
+      const manualSetupPrice = normalizeManualPrice(
+        module.manualSetupPrice,
+        "Setup customizado"
+      );
+      const pricingJustification = module.pricingJustification?.trim() || null;
+
+      if (!pricingJustification) {
+        throw new Error(
+          `Informe a justificativa interna do preço customizado para ${MODULE_LABELS[module.moduleType]}.`
+        );
+      }
+
+      return {
+        moduleType: module.moduleType,
+        unitType: priceRow?.unitType ?? MODULE_UNIT_TYPES[module.moduleType],
+        description: MODULE_LABELS[module.moduleType],
+        quantity: module.quantity,
+        rangeLabel: priceRow?.rangeLabel ?? "Sob consulta",
+        monthlyPrice: manualMonthlyPrice,
+        setupPrice: manualSetupPrice,
+        pricingMode,
+        manualMonthlyPrice,
+        manualSetupPrice,
+        pricingJustification,
+      };
+    }
+
+    if (!priceRow) {
+      throw new Error(
+        `Não existe tabela de preço ativa para ${MODULE_LABELS[module.moduleType]} na quantidade informada.`
+      );
+    }
+
     return {
       moduleType: module.moduleType,
       unitType: priceRow.unitType,
@@ -204,6 +275,10 @@ export async function calculateProposalPricing(
       rangeLabel: priceRow.rangeLabel,
       monthlyPrice: roundCurrency(Number(priceRow.monthlyPrice)),
       setupPrice: roundCurrency(Number(priceRow.setupPrice)),
+      pricingMode,
+      manualMonthlyPrice: null,
+      manualSetupPrice: null,
+      pricingJustification: null,
     };
   });
 

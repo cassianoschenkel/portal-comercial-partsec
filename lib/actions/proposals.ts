@@ -1,6 +1,11 @@
 "use server";
 
-import { ModuleType, ProposalStatus, UserRole } from "@prisma/client";
+import {
+  ModuleType,
+  ProposalItemPricingMode,
+  ProposalStatus,
+  UserRole,
+} from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -44,18 +49,33 @@ function parseModulesFromFormData(formData: FormData) {
 
   const indexedModules = new Map<
     number,
-    { moduleType?: FormDataEntryValue; quantity?: FormDataEntryValue }
+    {
+      moduleType?: FormDataEntryValue;
+      quantity?: FormDataEntryValue;
+      pricingMode?: FormDataEntryValue;
+      manualMonthlyPrice?: FormDataEntryValue;
+      manualSetupPrice?: FormDataEntryValue;
+      pricingJustification?: FormDataEntryValue;
+    }
   >();
 
   for (const [key, value] of formData.entries()) {
-    const match = key.match(/^modules\[(\d+)\]\.(moduleType|quantity)$/);
+    const match = key.match(
+      /^modules\[(\d+)\]\.(moduleType|quantity|pricingMode|manualMonthlyPrice|manualSetupPrice|pricingJustification)$/
+    );
 
     if (!match) {
       continue;
     }
 
     const index = Number(match[1]);
-    const field = match[2] as "moduleType" | "quantity";
+    const field = match[2] as
+      | "moduleType"
+      | "quantity"
+      | "pricingMode"
+      | "manualMonthlyPrice"
+      | "manualSetupPrice"
+      | "pricingJustification";
     const current = indexedModules.get(index) ?? {};
     current[field] = value;
     indexedModules.set(index, current);
@@ -66,6 +86,10 @@ function parseModulesFromFormData(formData: FormData) {
     .map(([, module]) => ({
       moduleType: module.moduleType,
       quantity: module.quantity,
+      pricingMode: module.pricingMode,
+      manualMonthlyPrice: module.manualMonthlyPrice,
+      manualSetupPrice: module.manualSetupPrice,
+      pricingJustification: module.pricingJustification,
     }));
 }
 
@@ -142,6 +166,7 @@ export async function createProposal(formData: FormData) {
           {
             moduleType: ModuleType.INFRASTRUCTURE,
             quantity: parsed.data.activeCount ?? 0,
+            pricingMode: ProposalItemPricingMode.AUTO,
           },
         ];
 
@@ -202,6 +227,10 @@ export async function createProposal(formData: FormData) {
           rangeLabel: item.rangeLabel,
           monthlyPrice: item.monthlyPrice.toString(),
           setupPrice: item.setupPrice.toString(),
+          pricingMode: item.pricingMode,
+          manualMonthlyPrice: item.manualMonthlyPrice?.toString() ?? null,
+          manualSetupPrice: item.manualSetupPrice?.toString() ?? null,
+          pricingJustification: item.pricingJustification,
         })),
       },
     },
@@ -336,6 +365,10 @@ export async function cloneProposal(proposalId: string) {
           rangeLabel: item.rangeLabel,
           monthlyPrice: item.monthlyPrice,
           setupPrice: item.setupPrice,
+          pricingMode: item.pricingMode,
+          manualMonthlyPrice: item.manualMonthlyPrice,
+          manualSetupPrice: item.manualSetupPrice,
+          pricingJustification: item.pricingJustification,
         })),
       },
     },

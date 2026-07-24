@@ -298,22 +298,17 @@ const styles = StyleSheet.create({
     pageBreakInside: "avoid",
   },
   colModule: {
-    width: "30%",
+    width: "34%",
     padding: 7,
     fontSize: 8.5,
   },
   colQuantity: {
-    width: "12%",
-    padding: 7,
-    fontSize: 8.5,
-  },
-  colUnit: {
     width: "14%",
     padding: 7,
     fontSize: 8.5,
   },
-  colRange: {
-    width: "10%",
+  colUnit: {
+    width: "18%",
     padding: 7,
     fontSize: 8.5,
   },
@@ -567,7 +562,6 @@ function getDisplayItems(proposal: ProposalPDFProps["proposal"]) {
       moduleLabel: item.description?.trim() || formatModuleType(item.moduleType),
       quantity: item.quantity,
       unitLabel: formatUnitType(item.unitType),
-      rangeLabel: item.rangeLabel,
       monthlyPrice: item.monthlyPrice,
       setupPrice: item.setupPrice,
     }));
@@ -579,7 +573,6 @@ function getDisplayItems(proposal: ProposalPDFProps["proposal"]) {
       moduleLabel: "Infraestrutura",
       quantity: proposal.activeCount,
       unitLabel: "ativos",
-      rangeLabel: "Legado",
       monthlyPrice: proposal.subtotal,
       setupPrice: proposal.setupFee,
     },
@@ -637,7 +630,6 @@ O prazo para a finalização da implementação é de até 30 dias corridos a pa
       <Text style={styles.colModule}>{item.moduleLabel}</Text>
       <Text style={styles.colQuantity}>{item.quantity}</Text>
       <Text style={styles.colUnit}>{item.unitLabel}</Text>
-      <Text style={styles.colRange}>{item.rangeLabel}</Text>
       <Text style={styles.colMonthly}>{formatCurrency(item.monthlyPrice)}</Text>
       <Text style={styles.colSetup}>{formatCurrency(item.setupPrice)}</Text>
     </View>
@@ -779,7 +771,6 @@ O prazo para a finalização da implementação é de até 30 dias corridos a pa
                 <Text style={[styles.colModule, styles.tableHeaderText]}>Módulo</Text>
                 <Text style={[styles.colQuantity, styles.tableHeaderText]}>Qtd.</Text>
                 <Text style={[styles.colUnit, styles.tableHeaderText]}>Unidade</Text>
-                <Text style={[styles.colRange, styles.tableHeaderText]}>Faixa</Text>
                 <Text style={[styles.colMonthly, styles.tableHeaderText]}>Mensalidade</Text>
                 <Text style={[styles.colSetup, styles.tableHeaderText]}>Setup</Text>
               </View>

@@ -64,6 +64,8 @@ type ProposalPreviewProps = {
       rangeLabel: string;
       monthlyPrice: unknown;
       setupPrice: unknown;
+      pricingMode?: string;
+      pricingJustification?: string | null;
     }>;
   };
   mode?: "internal" | "public";
@@ -92,6 +94,8 @@ function getDisplayItems(proposal: ProposalPreviewProps["proposal"]) {
       rangeLabel: item.rangeLabel,
       monthlyPrice: item.monthlyPrice,
       setupPrice: item.setupPrice,
+      pricingMode: item.pricingMode ?? "AUTO",
+      pricingJustification: item.pricingJustification ?? null,
       isLegacy: false,
     }));
   }
@@ -105,6 +109,8 @@ function getDisplayItems(proposal: ProposalPreviewProps["proposal"]) {
       rangeLabel: "Legado",
       monthlyPrice: proposal.subtotal,
       setupPrice: proposal.setupFee,
+      pricingMode: "AUTO",
+      pricingJustification: null,
       isLegacy: true,
     },
   ];
@@ -436,7 +442,21 @@ export function ProposalPreview({
                   {displayItems.map((item) => (
                     <tr key={item.id}>
                       <td className="px-4 py-4 text-sm font-medium text-slate-900">
-                        {item.moduleLabel}
+                        <div className="flex flex-col gap-2">
+                          <span>{item.moduleLabel}</span>
+                          {!isPublic && item.pricingMode === "MANUAL" ? (
+                            <span className="w-fit rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                              Preço customizado
+                            </span>
+                          ) : null}
+                        </div>
+                        {!isPublic &&
+                        item.pricingMode === "MANUAL" &&
+                        item.pricingJustification ? (
+                          <p className="mt-3 whitespace-pre-line text-xs font-normal leading-5 text-amber-800">
+                            {item.pricingJustification}
+                          </p>
+                        ) : null}
                       </td>
                       <td className="px-4 py-4 text-sm text-slate-700">
                         {item.quantity}
