@@ -6,7 +6,6 @@ import {
   PROPOSAL_MODULE_OPTIONS,
   PROPOSAL_PLAN_OPTIONS,
   getProposalModuleOption,
-  type ProposalModuleOptionValue,
 } from "@/lib/proposals/catalog";
 
 type CustomerOption = {
@@ -17,7 +16,7 @@ type CustomerOption = {
 
 type ProposalModuleRow = {
   id: string;
-  moduleType: ProposalModuleOptionValue;
+  moduleType: string;
   quantity: string;
   pricingMode: "AUTO" | "MANUAL";
   manualMonthlyPrice: string;
@@ -25,32 +24,79 @@ type ProposalModuleRow = {
   pricingJustification: string;
 };
 
+export type ProposalFormInitialValues = {
+  customerId: string;
+  title: string;
+  plan: string;
+  discountPercent: string | number;
+  validityDays?: string | number | null;
+  scopeDescription?: string | null;
+  notes?: string | null;
+  internalNotes?: string | null;
+  modules: Array<{
+    moduleType: string;
+    quantity: number;
+    pricingMode: "AUTO" | "MANUAL";
+    manualMonthlyPrice?: string | number | null;
+    manualSetupPrice?: string | number | null;
+    pricingJustification?: string | null;
+  }>;
+};
+
 type Props = {
   customers: CustomerOption[];
   action: (formData: FormData) => void | Promise<void>;
+  mode?: "create" | "edit";
+  initialValues?: ProposalFormInitialValues;
+  submitLabel?: string;
 };
 
 const INITIAL_MODULE_TYPE = PROPOSAL_MODULE_OPTIONS[0].value;
 
 function createModuleRow(
-  moduleType: ProposalModuleOptionValue = INITIAL_MODULE_TYPE
+  moduleType: string = INITIAL_MODULE_TYPE,
+  initialValues?: Partial<Omit<ProposalModuleRow, "id" | "moduleType">>
 ): ProposalModuleRow {
   return {
     id: `${moduleType}-${Math.random().toString(36).slice(2, 10)}`,
     moduleType,
-    quantity: "",
-    pricingMode: "AUTO",
-    manualMonthlyPrice: "",
-    manualSetupPrice: "",
-    pricingJustification: "",
+    quantity: initialValues?.quantity ?? "",
+    pricingMode: initialValues?.pricingMode ?? "AUTO",
+    manualMonthlyPrice: initialValues?.manualMonthlyPrice ?? "",
+    manualSetupPrice: initialValues?.manualSetupPrice ?? "",
+    pricingJustification: initialValues?.pricingJustification ?? "",
   };
 }
 
-export function ProposalForm({ customers, action }: Props) {
-  const [modules, setModules] = useState<ProposalModuleRow[]>([
-    createModuleRow(),
-  ]);
-  const [discountPercent, setDiscountPercent] = useState("0");
+function formatInitialValue(value: string | number | null | undefined) {
+  return value === null || value === undefined ? "" : String(value);
+}
+
+export function ProposalForm({
+  customers,
+  action,
+  mode = "create",
+  initialValues,
+  submitLabel,
+}: Props) {
+  const [modules, setModules] = useState<ProposalModuleRow[]>(() => {
+    if (mode === "edit" && initialValues?.modules.length) {
+      return initialValues.modules.map((module) =>
+        createModuleRow(module.moduleType, {
+          quantity: String(module.quantity),
+          pricingMode: module.pricingMode,
+          manualMonthlyPrice: formatInitialValue(module.manualMonthlyPrice),
+          manualSetupPrice: formatInitialValue(module.manualSetupPrice),
+          pricingJustification: module.pricingJustification ?? "",
+        })
+      );
+    }
+
+    return [createModuleRow()];
+  });
+  const [discountPercent, setDiscountPercent] = useState(
+    formatInitialValue(initialValues?.discountPercent) || "0"
+  );
   const [moduleError, setModuleError] = useState<string | null>(null);
 
   const selectedModuleTypes = new Set(
@@ -196,7 +242,7 @@ export function ProposalForm({ customers, action }: Props) {
             name="customerId"
             required
             className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2"
-            defaultValue=""
+            defaultValue={initialValues?.customerId ?? ""}
           >
             <option value="" disabled>
               Selecione um cliente
@@ -223,6 +269,7 @@ export function ProposalForm({ customers, action }: Props) {
             required
             className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2"
             placeholder="Proposta Partsec One - Cliente X"
+            defaultValue={initialValues?.title ?? ""}
           />
         </div>
 
@@ -238,7 +285,7 @@ export function ProposalForm({ customers, action }: Props) {
             name="plan"
             required
             className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2"
-            defaultValue={PROPOSAL_PLAN_OPTIONS[0].value}
+            defaultValue={initialValues?.plan ?? PROPOSAL_PLAN_OPTIONS[0].value}
           >
             {PROPOSAL_PLAN_OPTIONS.map((plan) => (
               <option key={plan.value} value={plan.value}>
@@ -262,7 +309,7 @@ export function ProposalForm({ customers, action }: Props) {
             min={0}
             max={10}
             step="0.01"
-            defaultValue={0}
+            value={discountPercent}
             required
             onChange={(event) => setDiscountPercent(event.target.value)}
             className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2"
@@ -332,6 +379,13 @@ export function ProposalForm({ customers, action }: Props) {
                             }
                             className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
                           >
+                            {PROPOSAL_MODULE_OPTIONS.some(
+                              (option) => option.value === module.moduleType
+                            ) ? null : (
+                              <option value={module.moduleType}>
+                                {module.moduleType}
+                              </option>
+                            )}
                             {PROPOSAL_MODULE_OPTIONS.filter((option) => {
                               return (
                                 option.value === module.moduleType ||
@@ -524,6 +578,7 @@ export function ProposalForm({ customers, action }: Props) {
           name="scopeDescription"
           className="mt-2 min-h-28 w-full rounded-md border border-slate-300 px-3 py-2"
           placeholder="Descreva de forma objetiva o escopo específico desta proposta para o cliente."
+          defaultValue={initialValues?.scopeDescription ?? ""}
         />
       </div>
 
@@ -538,15 +593,38 @@ export function ProposalForm({ customers, action }: Props) {
           id="notes"
           name="notes"
           className="mt-2 min-h-28 w-full rounded-md border border-slate-300 px-3 py-2"
+          defaultValue={initialValues?.notes ?? ""}
         />
       </div>
+
+      <div>
+        <label
+          htmlFor="internalNotes"
+          className="block text-sm font-medium text-slate-700"
+        >
+          Observações internas
+        </label>
+        <textarea
+          id="internalNotes"
+          name="internalNotes"
+          className="mt-2 min-h-24 w-full rounded-md border border-slate-300 px-3 py-2"
+          defaultValue={initialValues?.internalNotes ?? ""}
+        />
+      </div>
+
+      <input
+        type="hidden"
+        name="validityDays"
+        value={formatInitialValue(initialValues?.validityDays) || "15"}
+      />
+      <input type="hidden" name="discountAmount" value="0" />
 
       <div className="flex justify-end">
         <button
           type="submit"
           className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
         >
-          Gerar proposta
+          {submitLabel ?? (mode === "edit" ? "Salvar alterações" : "Gerar proposta")}
         </button>
       </div>
     </form>

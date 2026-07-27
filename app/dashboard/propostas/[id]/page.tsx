@@ -86,6 +86,15 @@ export default async function ProposalDetailsPage({
 
           {canClone ? <CloneProposalButton proposalId={proposal.id} /> : null}
 
+          {canUpdate && proposal.status === "DRAFT" ? (
+            <Link
+              href={`/dashboard/propostas/${proposal.id}/editar`}
+              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Editar proposta
+            </Link>
+          ) : null}
+
           {canUpdate ? (
             <ProposalActions
               proposalId={proposal.id}

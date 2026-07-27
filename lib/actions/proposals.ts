@@ -240,6 +240,160 @@ export async function createProposal(formData: FormData) {
   redirect(`/dashboard/propostas/${proposal.id}`);
 }
 
+export async function updateProposal(proposalId: string, formData: FormData) {
+  const session = await getRequiredSession();
+  requireCanUpdateProposal(session);
+
+  const proposal = await prisma.proposal.findFirst({
+    where: {
+      id: proposalId,
+      deletedAt: null,
+      ...(isAdmin(session)
+        ? {}
+        : { partnerId: requirePartnerScope(session) }),
+    },
+    select: {
+      id: true,
+      partnerId: true,
+      status: true,
+    },
+  });
+
+  if (!proposal) {
+    throw new Error("Proposta não encontrada ou sem permissão de acesso.");
+  }
+
+  if (proposal.status !== ProposalStatus.DRAFT) {
+    throw new Error("Apenas propostas em rascunho podem ser editadas.");
+  }
+
+  const parsed = proposalSchema.safeParse({
+    customerId: formData.get("customerId"),
+    title: formData.get("title"),
+    plan: formData.get("plan"),
+    activeCount: formData.get("activeCount"),
+    modules: parseModulesFromFormData(formData),
+    discountPercent: formData.get("discountPercent"),
+    discountAmount: formData.get("discountAmount"),
+    validityDays: formData.get("validityDays"),
+    notes: formData.get("notes"),
+    internalNotes: formData.get("internalNotes"),
+    scopeDescription: formData.get("scopeDescription"),
+  });
+
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message || "Dados inválidos.");
+  }
+
+  const customer = await prisma.customer.findFirst({
+    where: {
+      id: parsed.data.customerId,
+      ...(isAdmin(session)
+        ? {}
+        : { partnerId: requirePartnerScope(session) }),
+    },
+    select: { id: true },
+  });
+
+  if (!customer) {
+    throw new Error("Cliente inválido para este usuário.");
+  }
+
+  const partner = await prisma.partner.findUnique({
+    where: { id: proposal.partnerId },
+    select: { defaultCommissionPercent: true },
+  });
+
+  if (!partner) {
+    throw new Error("Parceiro da proposta não encontrado.");
+  }
+
+  const partnerCommissionPercent = Number(partner.defaultCommissionPercent ?? 0);
+
+  const modules =
+    parsed.data.modules && parsed.data.modules.length > 0
+      ? parsed.data.modules
+      : [
+          {
+            moduleType: ModuleType.INFRASTRUCTURE,
+            quantity: parsed.data.activeCount ?? 0,
+            pricingMode: ProposalItemPricingMode.AUTO,
+          },
+        ];
+
+  const totals = await calculateProposalPricing({
+    plan: parsed.data.plan,
+    modules,
+    discountPercent: parsed.data.discountPercent,
+    discountAmount: parsed.data.discountAmount,
+    partnerCommissionPct: partnerCommissionPercent,
+    role: session.user.role === UserRole.ADMIN ? UserRole.ADMIN : UserRole.PARTNER,
+  });
+
+  const legacyActiveCount = modules.reduce(
+    (total, item) => total + item.quantity,
+    0
+  );
+  const legacyUnitPrice =
+    legacyActiveCount > 0
+      ? Number((totals.monthlySubtotal / legacyActiveCount).toFixed(2))
+      : 0;
+
+  await prisma.proposal.update({
+    where: { id: proposal.id },
+    data: {
+      customerId: parsed.data.customerId,
+      title: parsed.data.title,
+      status: ProposalStatus.DRAFT,
+      plan: parsed.data.plan,
+      activeCount: legacyActiveCount,
+      unitPrice: legacyUnitPrice.toString(),
+      subtotal: totals.monthlySubtotal.toString(),
+      discountPercent: totals.discountPercent.toString(),
+      discountValue: totals.discountAmount.toString(),
+      total: totals.finalMonthlyPrice.toString(),
+      setupFee: totals.setupSubtotal.toString(),
+      partnerCommissionPercent: totals.partnerCommissionPct.toString(),
+      partnerCommissionValue: totals.partnerCommission.toString(),
+      monthlySubtotal: totals.monthlySubtotal.toString(),
+      setupSubtotal: totals.setupSubtotal.toString(),
+      discountAmount: totals.discountAmount.toString(),
+      finalMonthlyPrice: totals.finalMonthlyPrice.toString(),
+      finalSetupPrice: totals.finalSetupPrice.toString(),
+      firstMonthTotal: totals.firstMonthTotal.toString(),
+      partnerCommissionPct: totals.partnerCommissionPct.toString(),
+      partnerCommission: totals.partnerCommission.toString(),
+      partsecNetRevenue: totals.partsecNetRevenue.toString(),
+      validityDays: parsed.data.validityDays,
+      notes: parsed.data.notes || null,
+      internalNotes: parsed.data.internalNotes || null,
+      scopeDescription: parsed.data.scopeDescription || null,
+      items: {
+        deleteMany: {},
+        create: totals.items.map((item) => ({
+          moduleType: item.moduleType,
+          unitType: item.unitType,
+          description: item.description,
+          quantity: item.quantity,
+          rangeLabel: item.rangeLabel,
+          monthlyPrice: item.monthlyPrice.toString(),
+          setupPrice: item.setupPrice.toString(),
+          pricingMode: item.pricingMode,
+          manualMonthlyPrice: item.manualMonthlyPrice?.toString() ?? null,
+          manualSetupPrice: item.manualSetupPrice?.toString() ?? null,
+          pricingJustification: item.pricingJustification,
+        })),
+      },
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/propostas");
+  revalidatePath(`/dashboard/propostas/${proposal.id}`);
+  revalidatePath(`/dashboard/propostas/${proposal.id}/editar`);
+  redirect(`/dashboard/propostas/${proposal.id}`);
+}
+
 export async function acceptProposal(formData: FormData) {
   const proposalId = String(formData.get("proposalId") || "");
   const acceptedByName = String(formData.get("acceptedByName") || "").trim();
